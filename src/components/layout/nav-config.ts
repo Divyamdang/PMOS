@@ -7,7 +7,6 @@ import {
   PhoneCall,
   Clock,
   ListChecks,
-  CalendarDays,
   Users,
   Building2,
   Video,
@@ -49,7 +48,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/follow-ups", label: "Follow-ups", icon: PhoneCall, shortcut: "F" },
       { href: "/waiting-for", label: "Waiting For", icon: Clock, shortcut: "W" },
       { href: "/tasks", label: "Tasks", icon: ListChecks },
-      { href: "/calendar", label: "Calendar", icon: CalendarDays },
     ],
   },
   {

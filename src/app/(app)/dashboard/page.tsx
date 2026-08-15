@@ -165,8 +165,8 @@ export default async function DashboardPage() {
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-medium">Upcoming</h2>
-            <Link href="/calendar" className="text-xs" style={{ color: "var(--route)" }}>
-              Calendar
+            <Link href="/meetings" className="text-xs" style={{ color: "var(--route)" }}>
+              Meetings
             </Link>
           </div>
           {data.upcomingMeetings.length > 0 ? (
@@ -181,7 +181,7 @@ export default async function DashboardPage() {
               ))}
             </div>
           ) : (
-            <EmptyState title="Nothing on the calendar." description="Meetings you schedule will show up here." />
+            <EmptyState title="Nothing scheduled." description="Meetings you schedule — or sync from Google Calendar — will show up here." />
           )}
         </section>
       </div>

@@ -1,11 +1,6 @@
 "use server";
 
 import { db } from "@/lib/db";
-import fs from "node:fs/promises";
-import path from "node:path";
-
-const DB_PATH = path.join(process.cwd(), "prisma", "dev.db");
-const BACKUP_DIR = path.join(process.cwd(), "prisma", "backups");
 
 export async function exportAllDataJson() {
   const [
@@ -55,37 +50,4 @@ function csvEscape(value: string) {
     return `"${value.replace(/"/g, '""')}"`;
   }
   return value;
-}
-
-export async function createBackup() {
-  await fs.mkdir(BACKUP_DIR, { recursive: true });
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const dest = path.join(BACKUP_DIR, `wts-backup-${stamp}.db`);
-  await fs.copyFile(DB_PATH, dest);
-  return { fileName: path.basename(dest), createdAt: stamp };
-}
-
-export async function listBackups() {
-  await fs.mkdir(BACKUP_DIR, { recursive: true });
-  const files = await fs.readdir(BACKUP_DIR);
-  const stats = await Promise.all(
-    files
-      .filter((f) => f.endsWith(".db"))
-      .map(async (f) => {
-        const stat = await fs.stat(path.join(BACKUP_DIR, f));
-        return { fileName: f, size: stat.size, createdAt: stat.mtime.toISOString() };
-      })
-  );
-  return stats.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-}
-
-export async function restoreBackup(fileName: string) {
-  const safeName = path.basename(fileName);
-  const src = path.join(BACKUP_DIR, safeName);
-  await fs.access(src);
-  // safety copy of current state before overwriting
-  await fs.mkdir(BACKUP_DIR, { recursive: true });
-  const preRestoreStamp = new Date().toISOString().replace(/[:.]/g, "-");
-  await fs.copyFile(DB_PATH, path.join(BACKUP_DIR, `pre-restore-${preRestoreStamp}.db`));
-  await fs.copyFile(src, DB_PATH);
 }

@@ -6,6 +6,101 @@ Read this first if context has reset. Read [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)
 too — it's locked and every UI decision should check against it, not against
 "what normal SaaS looks like."
 
+## Setup guide — required before this app runs at all
+
+WTS moved from local-first SQLite to Supabase Postgres + Google sign-in for
+team/Vercel use. Nothing works — not even `npm run dev` — until these are
+in place. This is written for whoever owns the Vercel project (Divyam), and
+needs redoing (or re-checking) if credentials ever rotate.
+
+### 1. Supabase — the database
+
+1. In your Supabase project (`poeyuvwlobsuowdxlfoa`), go to **Project
+   Settings > Database**.
+2. Under **Connection string**, copy two different URIs:
+   - **Transaction pooler** (port `6543`, has `?pgbouncer=true`) → this is
+     `DATABASE_URL`. The app uses this one at runtime; it's what works
+     from serverless functions.
+   - **Session pooler or Direct connection** (port `5432`, no pgbouncer
+     flag) → this is `DIRECT_URL`. Only used for running migrations,
+     which need a non-pooled connection.
+3. Replace `[YOUR-PASSWORD]` in both with your actual database password
+   (set when the project was created, or reset it from the same Database
+   settings page).
+4. Put both into `.env.local` (create it in the project root if it
+   doesn't exist — it's gitignored, never committed).
+5. Run the first migration: `npx prisma migrate dev --name init`. This
+   creates every table fresh — there's no data to preserve, the schema
+   changed too much to carry over from the old SQLite version.
+
+### 2. Google Cloud — OAuth app for sign-in + Gmail + Calendar
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com),
+   create a new project (or use an existing one) — call it "WTS" or
+   similar.
+2. **APIs & Services > Library** — search for and enable:
+   - Gmail API
+   - Google Calendar API
+3. **APIs & Services > OAuth consent screen** — set it up (External user
+   type is fine for a small team using their own Google accounts; Internal
+   only works if everyone's on the same Google Workspace domain). Add your
+   team's Google accounts as test users while the app is in "Testing"
+   status (Google caps unverified apps at 100 test users, which is plenty
+   for a team).
+4. **APIs & Services > Credentials > Create Credentials > OAuth client
+   ID** — type **Web application**. Add authorized redirect URIs:
+   - `http://localhost:3000/api/auth/callback/google` (local dev)
+   - `https://<your-vercel-domain>/api/auth/callback/google` (production
+     — add this once you know the domain; you can add it later and
+     redeploy, sign-in just won't work in prod until it's there)
+5. Copy the **Client ID** and **Client Secret** into `.env.local`:
+   `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+6. Generate an auth secret and add it too: `npx auth secret` prints one —
+   put it in `.env.local` as `AUTH_SECRET`.
+
+### 3. Local `.env.local` (gitignored — never commit this file)
+
+```
+DATABASE_URL="postgresql://postgres.[ref]:[password]@[region].pooler.supabase.com:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://postgres.[ref]:[password]@[region].pooler.supabase.com:5432/postgres"
+AUTH_SECRET="[output of npx auth secret]"
+NEXTAUTH_URL="http://localhost:3000"
+GOOGLE_CLIENT_ID="[from Google Cloud]"
+GOOGLE_CLIENT_SECRET="[from Google Cloud]"
+OPENAI_API_KEY=""   # optional — AI features degrade gracefully without it
+```
+
+`.env` (tracked, committed) holds the same variable names with placeholder
+values as a template — never put real secrets there.
+
+### 4. Vercel deployment
+
+1. Import the GitHub repo into a new Vercel project.
+2. In **Project Settings > Environment Variables**, add every variable
+   from `.env.local` above (with production values — same Supabase
+   project is fine, or a separate one if you want prod/dev data
+   separated). Set `NEXTAUTH_URL` to the real production URL.
+3. Vercel runs `npm install` → `postinstall` (`prisma generate`) →
+   `npm run build` automatically; no extra build command config needed.
+4. Migrations don't run automatically on deploy (intentionally — running
+   `migrate dev` against production isn't safe to automate). After the
+   first deploy, and after any future schema change, run
+   `npx prisma migrate deploy` yourself with production's `DATABASE_URL`/
+   `DIRECT_URL` in your shell environment.
+5. Once deployed, add the production redirect URI
+   (`https://<domain>/api/auth/callback/google`) to the Google OAuth
+   client from step 2 above, if you haven't already.
+
+### What's still unverified
+
+Everything above was written and the code builds cleanly (`npm run build`,
+`npm run lint`, `tsc --noEmit` all pass), but none of it has been
+exercised against real credentials yet — this environment has no Supabase
+password or Google OAuth secret. Specifically unverified: the actual
+migration running against Supabase, the Google sign-in redirect flow,
+Gmail message fetching, and Google Calendar event import. First real test
+of each of those should happen right after `.env.local` is filled in.
+
 ## Stack decisions (deviations from the brief)
 
 - **Prisma 6.19.3, not 7.** Prisma 7's SQLite path requires driver adapters

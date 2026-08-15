@@ -30,6 +30,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# local secrets — real credentials go here, never committed.
+# .env stays tracked as a template with placeholder values.
+.env.local
+.env.*.local
+
 # vercel
 .vercel
 
@@ -38,3 +43,9 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# WTS runs on Supabase Postgres now, not local SQLite — nothing should
+# create these anymore, but ignore them in case a stray script does.
+*.db
+*.db-journal
+prisma/backups/

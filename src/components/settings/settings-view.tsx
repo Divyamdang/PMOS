@@ -5,27 +5,27 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTheme } from "next-themes";
-import { updateSettings } from "@/app/actions/settings";
-import { exportAllDataJson, exportTasksCsv, createBackup, restoreBackup } from "@/app/actions/data";
+import { updatePreferences } from "@/app/actions/settings";
+import { exportAllDataJson, exportTasksCsv } from "@/app/actions/data";
 import { exportTasksToExcel } from "@/app/actions/export-excel";
-import { downloadBase64File } from "@/lib/download-file";
-import { formatDate } from "@/lib/format";
+import { downloadBase64File, downloadTextFile } from "@/lib/download-file";
+import { signOutAction } from "@/app/actions/auth";
 import { toast } from "sonner";
-import { Download, Database, Sparkles, RotateCcw, FileSpreadsheet } from "lucide-react";
-import type { Settings } from "@/generated/prisma";
+import { Download, Sparkles, FileSpreadsheet, LogOut } from "lucide-react";
+import type { User, UserPreferences } from "@/generated/prisma";
 
-type Backup = { fileName: string; size: number; createdAt: string };
 type Counts = { projects: number; tasks: number; people: number; vendors: number };
 
 export function SettingsView({
-  settings,
-  backups,
+  preferences,
+  user,
   counts,
   aiKeyConfigured,
 }: {
-  settings: Settings;
-  backups: Backup[];
+  preferences: UserPreferences;
+  user: User;
   counts: Counts;
   aiKeyConfigured: boolean;
 }) {
@@ -40,11 +40,11 @@ export function SettingsView({
         </TabsList>
 
         <TabsContent value="general" className="flex flex-col gap-5 pt-5">
-          <GeneralTab settings={settings} />
+          <GeneralTab preferences={preferences} user={user} />
         </TabsContent>
 
         <TabsContent value="workspace" className="flex flex-col gap-3 pt-5">
-          <p className="text-sm" style={{ color: "var(--muted-2)" }}>What&apos;s in your workspace right now.</p>
+          <p className="text-sm" style={{ color: "var(--muted-2)" }}>What&apos;s in your team&apos;s workspace right now.</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {Object.entries(counts).map(([k, v]) => (
               <div key={k} className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--card)" }}>
@@ -70,17 +70,16 @@ export function SettingsView({
         </TabsContent>
 
         <TabsContent value="data" className="flex flex-col gap-5 pt-5">
-          <DataTab backups={backups} />
+          <DataTab />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-function GeneralTab({ settings }: { settings: Settings }) {
-  const [userName, setUserName] = React.useState(settings.userName);
-  const [workingHoursStart, setWorkingHoursStart] = React.useState(settings.workingHoursStart);
-  const [workingHoursEnd, setWorkingHoursEnd] = React.useState(settings.workingHoursEnd);
+function GeneralTab({ preferences, user }: { preferences: UserPreferences; user: User }) {
+  const [workingHoursStart, setWorkingHoursStart] = React.useState(preferences.workingHoursStart);
+  const [workingHoursEnd, setWorkingHoursEnd] = React.useState(preferences.workingHoursEnd);
   const { theme, setTheme } = useTheme();
   // next-themes only knows the real theme after mount (it reads localStorage
   // client-side) — rendering theme-dependent UI before that mismatches SSR.
@@ -89,15 +88,20 @@ function GeneralTab({ settings }: { settings: Settings }) {
 
   return (
     <>
-      <div className="flex flex-col gap-1.5">
-        <Label>Name</Label>
-        <Input
-          value={userName}
-          onChange={(e) => setUserName(e.target.value)}
-          onBlur={() => userName !== settings.userName && updateSettings({ userName })}
-          className="max-w-xs"
-        />
+      <div className="flex items-center gap-3">
+        <Avatar className="h-12 w-12">
+          {user.image && <AvatarImage src={user.image} alt={user.name} />}
+          <AvatarFallback>{user.name[0]}</AvatarFallback>
+        </Avatar>
+        <div>
+          <p className="text-sm font-medium">{user.name}</p>
+          <p className="text-xs" style={{ color: "var(--muted-2)" }}>{user.email}</p>
+        </div>
       </div>
+      <p className="text-xs" style={{ color: "var(--muted-2)" }}>
+        Your name and picture come from your Google account. To change them, update your Google profile.
+      </p>
+
       <div className="flex flex-col gap-1.5">
         <Label>Theme</Label>
         <div className="flex gap-2">
@@ -111,115 +115,64 @@ function GeneralTab({ settings }: { settings: Settings }) {
       <div className="flex flex-col gap-1.5">
         <Label>Working hours</Label>
         <div className="flex items-center gap-2">
-          <Input type="time" value={workingHoursStart} onChange={(e) => setWorkingHoursStart(e.target.value)} onBlur={() => updateSettings({ workingHoursStart })} className="w-32" />
+          <Input type="time" value={workingHoursStart} onChange={(e) => setWorkingHoursStart(e.target.value)} onBlur={() => updatePreferences({ workingHoursStart })} className="w-32" />
           <span style={{ color: "var(--muted-2)" }}>to</span>
-          <Input type="time" value={workingHoursEnd} onChange={(e) => setWorkingHoursEnd(e.target.value)} onBlur={() => updateSettings({ workingHoursEnd })} className="w-32" />
+          <Input type="time" value={workingHoursEnd} onChange={(e) => setWorkingHoursEnd(e.target.value)} onBlur={() => updatePreferences({ workingHoursEnd })} className="w-32" />
         </div>
       </div>
+
+      <form action={signOutAction}>
+        <Button type="submit" size="sm" variant="outline" className="w-fit gap-1.5">
+          <LogOut className="h-3.5 w-3.5" /> Sign out
+        </Button>
+      </form>
     </>
   );
 }
 
-function DataTab({ backups }: { backups: Backup[] }) {
-  const [creating, setCreating] = React.useState(false);
-  const [restoring, setRestoring] = React.useState<string | null>(null);
-
-  function download(content: string, fileName: string, mime: string) {
-    const blob = new Blob([content], { type: mime });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
+function DataTab() {
   return (
-    <>
-      <div className="flex flex-col gap-2">
-        <p className="text-sm font-medium">Export</p>
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1.5"
-            onClick={async () => {
-              const json = await exportAllDataJson();
-              download(json, `wts-export-${new Date().toISOString().slice(0, 10)}.json`, "application/json");
-            }}
-          >
-            <Download className="h-3.5 w-3.5" /> Export JSON
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1.5"
-            onClick={async () => {
-              const csv = await exportTasksCsv();
-              download(csv, `wts-tasks-${new Date().toISOString().slice(0, 10)}.csv`, "text/csv");
-            }}
-          >
-            <Download className="h-3.5 w-3.5" /> Export tasks CSV
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1.5"
-            onClick={async () => {
-              const base64 = await exportTasksToExcel();
-              downloadBase64File(base64, `wts-tasks-${new Date().toISOString().slice(0, 10)}.xlsx`, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-              toast.success("Exported to Excel.");
-            }}
-          >
-            <FileSpreadsheet className="h-3.5 w-3.5" /> Export tasks Excel
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <p className="text-sm font-medium">Backup & restore</p>
-        <p className="text-xs" style={{ color: "var(--muted-2)" }}>Backs up the local database file. Restoring overwrites current data — a safety copy of the current state is made automatically first. Restart WTS after restoring.</p>
+    <div className="flex flex-col gap-2">
+      <p className="text-sm font-medium">Export</p>
+      <p className="text-xs" style={{ color: "var(--muted-2)" }}>
+        Database backups are handled by Supabase — these are point-in-time exports for spreadsheets, reporting, or migrating elsewhere.
+      </p>
+      <div className="flex flex-wrap gap-2">
         <Button
           size="sm"
           variant="outline"
-          className="w-fit gap-1.5"
-          disabled={creating}
+          className="gap-1.5"
           onClick={async () => {
-            setCreating(true);
-            await createBackup();
-            toast.success("Backup created.");
-            setCreating(false);
-            window.location.reload();
+            const json = await exportAllDataJson();
+            downloadTextFile(json, `wts-export-${new Date().toISOString().slice(0, 10)}.json`, "application/json");
           }}
         >
-          <Database className="h-3.5 w-3.5" /> Create backup now
+          <Download className="h-3.5 w-3.5" /> Export JSON
         </Button>
-        {backups.length > 0 && (
-          <div className="mt-2 flex flex-col gap-1.5">
-            {backups.map((b) => (
-              <div key={b.fileName} className="flex items-center justify-between rounded-lg border px-3 py-2 text-xs" style={{ borderColor: "var(--border-subtle)", background: "var(--card)" }}>
-                <span>{b.fileName}</span>
-                <div className="flex items-center gap-3">
-                  <span style={{ color: "var(--muted-2)" }}>{formatDate(b.createdAt, "MMM d, h:mm a")} · {(b.size / 1024).toFixed(0)}KB</span>
-                  <button
-                    disabled={restoring === b.fileName}
-                    className="flex items-center gap-1"
-                    style={{ color: "var(--route)" }}
-                    onClick={async () => {
-                      setRestoring(b.fileName);
-                      await restoreBackup(b.fileName);
-                      toast.success("Restored. Restart WTS to fully reload.");
-                      setRestoring(null);
-                    }}
-                  >
-                    <RotateCcw className="h-3 w-3" /> Restore
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5"
+          onClick={async () => {
+            const csv = await exportTasksCsv();
+            downloadTextFile(csv, `wts-tasks-${new Date().toISOString().slice(0, 10)}.csv`, "text/csv");
+          }}
+        >
+          <Download className="h-3.5 w-3.5" /> Export tasks CSV
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5"
+          onClick={async () => {
+            const base64 = await exportTasksToExcel();
+            downloadBase64File(base64, `wts-tasks-${new Date().toISOString().slice(0, 10)}.xlsx`, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            toast.success("Exported to Excel.");
+          }}
+        >
+          <FileSpreadsheet className="h-3.5 w-3.5" /> Export tasks Excel
+        </Button>
       </div>
-    </>
+    </div>
   );
 }

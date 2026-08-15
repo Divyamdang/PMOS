@@ -3,7 +3,42 @@
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
 import { nextTaskKey } from "@/lib/keys";
+import { listUpcomingGoogleEvents, type GoogleCalendarEvent } from "@/lib/google/calendar";
 import { revalidatePath } from "next/cache";
+
+type GoogleSyncResult = { ok: true; events: GoogleCalendarEvent[] } | { ok: false; reason: string };
+
+/** Lists upcoming events from the signed-in user's primary Google Calendar,
+ * excluding ones already imported as a Meeting. Never writes anything —
+ * importGoogleEvent below does that, only for events the user picks. */
+export async function fetchGoogleCalendarEvents(): Promise<GoogleSyncResult> {
+  const user = await getCurrentUser();
+  try {
+    const events = await listUpcomingGoogleEvents(user.id);
+    const alreadyImported = await db.meeting.findMany({
+      where: { googleEventId: { in: events.map((e) => e.id) } },
+      select: { googleEventId: true },
+    });
+    const importedIds = new Set(alreadyImported.map((m) => m.googleEventId));
+    return { ok: true, events: events.filter((e) => !importedIds.has(e.id)) };
+  } catch (err) {
+    return { ok: false, reason: err instanceof Error ? err.message : "Couldn't reach Google Calendar." };
+  }
+}
+
+export async function importGoogleEvent(event: GoogleCalendarEvent, projectId: string | null) {
+  const meeting = await db.meeting.create({
+    data: {
+      title: event.title,
+      date: event.start ? new Date(event.start) : new Date(),
+      agenda: event.description,
+      googleEventId: event.id,
+      projectId,
+    },
+  });
+  revalidatePath("/meetings");
+  return meeting;
+}
 
 export async function createMeeting(input: {
   title: string;

@@ -1,23 +1,27 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { getCurrentUser } from "@/lib/current-user";
 import { revalidatePath } from "next/cache";
 
-export async function getSettings() {
-  const settings = await db.settings.findUnique({ where: { id: 1 } });
-  if (settings) return settings;
-  return db.settings.create({ data: { id: 1 } });
+export async function getPreferences() {
+  const user = await getCurrentUser();
+  const prefs = await db.userPreferences.findUnique({ where: { userId: user.id } });
+  if (prefs) return prefs;
+  return db.userPreferences.create({ data: { userId: user.id } });
 }
 
-export async function updateSettings(data: Partial<{
-  userName: string;
+export async function updatePreferences(data: Partial<{
   theme: string;
-  accentColor: string;
   workingHoursStart: string;
   workingHoursEnd: string;
-  aiEnabled: boolean;
 }>) {
-  const updated = await db.settings.upsert({ where: { id: 1 }, update: data, create: { id: 1, ...data } });
+  const user = await getCurrentUser();
+  const updated = await db.userPreferences.upsert({
+    where: { userId: user.id },
+    update: data,
+    create: { userId: user.id, ...data },
+  });
   revalidatePath("/settings");
   return updated;
 }

@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/pmos/states";
 import { NewMeetingDialog } from "@/components/meetings/new-meeting-dialog";
 import { AIActionItemsDialog } from "@/components/meetings/ai-action-items-dialog";
+import { GoogleCalendarSyncDialog } from "@/components/meetings/google-calendar-sync-dialog";
 import { addActionItem, convertActionItemToTask } from "@/app/actions/meetings";
 import { formatDate } from "@/lib/format";
 import { toast } from "sonner";
-import { Plus, Video, ArrowRight, Check, Sparkles } from "lucide-react";
+import { Plus, Video, ArrowRight, Check, Sparkles, CalendarDays } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import type { Meeting, MeetingParticipant, Person, ActionItem, Project } from "@/generated/prisma";
 
@@ -29,14 +30,20 @@ export function MeetingsView({
 }) {
   const router = useRouter();
   const [newOpen, setNewOpen] = React.useState(openNewOnLoad);
+  const [syncOpen, setSyncOpen] = React.useState(false);
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <p className="text-sm" style={{ color: "var(--muted-2)" }}>{meetings.length} meetings</p>
-        <Button size="sm" className="gap-1.5" onClick={() => setNewOpen(true)}>
-          <Plus className="h-4 w-4" /> New meeting
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setSyncOpen(true)}>
+            <CalendarDays className="h-4 w-4" /> Sync Google Calendar
+          </Button>
+          <Button size="sm" className="gap-1.5" onClick={() => setNewOpen(true)}>
+            <Plus className="h-4 w-4" /> New meeting
+          </Button>
+        </div>
       </div>
 
       {meetings.length === 0 ? (
@@ -50,6 +57,7 @@ export function MeetingsView({
       )}
 
       <NewMeetingDialog open={newOpen} onOpenChange={(o) => { setNewOpen(o); if (!o) router.replace("/meetings"); }} people={people} projects={projects} />
+      <GoogleCalendarSyncDialog open={syncOpen} onOpenChange={setSyncOpen} projects={projects} onImported={() => router.refresh()} />
     </div>
   );
 }

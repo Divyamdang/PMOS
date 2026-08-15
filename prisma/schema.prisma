@@ -1,4 +1,4 @@
-// PMOS data model. See BUILD_LOG.md / master prompt Section 5 for the spec
+// WTS data model. See BUILD_LOG.md / master prompt Section 5 for the spec
 // this was built against.
 
 generator client {
@@ -7,22 +7,30 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ---------------------------------------------------------------------------
-// Core identity
+// Core identity — User carries both our own app fields and the fields
+// Auth.js's Prisma adapter expects (emailVerified, image), so the same
+// table serves both. Account/Session/VerificationToken below are Auth.js's
+// standard schema, required as-is for the adapter to work.
 // ---------------------------------------------------------------------------
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  avatar    String?
-  role      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
 
   ownedProjects    Project[]     @relation("ProjectOwner")
   ownedInitiatives Initiative[]  @relation("InitiativeOwner")
@@ -33,6 +41,56 @@ model User {
   ownedIncidents   Incident[]    @relation("IncidentOwner")
   comments         Comment[]
   activityEvents   ActivityEvent[]
+  preferences      UserPreferences?
+  inboxItems       InboxItem[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+/** Per-user preferences — theme, working hours. Replaces the old singleton
+ * Settings row now that WTS is multi-user; profile fields (name, email,
+ * picture) come from the Google account instead of being editable here. */
+model UserPreferences {
+  id                String  @id @default(cuid())
+  userId            String  @unique
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme             String  @default("dark") // dark | light | system
+  workingHoursStart String  @default("09:00")
+  workingHoursEnd   String  @default("18:00")
+  updatedAt         DateTime @updatedAt
 }
 
 // ---------------------------------------------------------------------------
@@ -424,15 +482,16 @@ model WaitingForItem {
 // ---------------------------------------------------------------------------
 
 model Meeting {
-  id        String   @id @default(cuid())
-  title     String
-  date      DateTime
-  projectId String?
-  project   Project? @relation(fields: [projectId], references: [id])
-  agenda    String?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  title         String
+  date          DateTime
+  projectId     String?
+  project       Project? @relation(fields: [projectId], references: [id])
+  agenda        String?
+  notes         String?
+  googleEventId String?  @unique // set when imported from Google Calendar, prevents re-importing
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   participants MeetingParticipant[]
   actionItems  ActionItem[]
@@ -636,6 +695,8 @@ enum InboxConversion {
 
 model InboxItem {
   id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   text          String
   converted     Boolean          @default(false)
   convertedType InboxConversion?
@@ -643,17 +704,3 @@ model InboxItem {
   createdAt     DateTime         @default(now())
 }
 
-// ---------------------------------------------------------------------------
-// Settings (single row, single-user app)
-// ---------------------------------------------------------------------------
-
-model Settings {
-  id                 Int      @id @default(1)
-  userName           String   @default("Divyam")
-  theme              String   @default("dark") // dark | light | system
-  accentColor        String   @default("#4C7EF0")
-  workingHoursStart  String   @default("09:00")
-  workingHoursEnd    String   @default("18:00")
-  aiEnabled          Boolean  @default(false)
-  updatedAt          DateTime @updatedAt
-}

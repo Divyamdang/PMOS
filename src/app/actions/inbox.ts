@@ -10,7 +10,8 @@ import type { InboxConversion, TaskType } from "@/generated/prisma";
 export async function captureInboxItem(text: string) {
   const trimmed = text.trim();
   if (!trimmed) return;
-  await db.inboxItem.create({ data: { text: trimmed } });
+  const user = await getCurrentUser();
+  await db.inboxItem.create({ data: { text: trimmed, userId: user.id } });
   revalidatePath("/inbox");
   revalidatePath("/dashboard");
 }

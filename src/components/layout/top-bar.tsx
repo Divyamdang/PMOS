@@ -1,13 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Plus, Moon, Sun } from "lucide-react";
+import { Search, Plus, Moon, Sun, LogOut, Settings as SettingsIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { NAV_GROUPS, SETTINGS_ITEM } from "./nav-config";
 import { useUIStore } from "@/lib/store/ui-store";
 import { NotificationBell } from "./notification-bell";
 import { MobileNav } from "./mobile-nav";
+import { signOutAction } from "@/app/actions/auth";
 
 function useSectionTitle() {
   const pathname = usePathname();
@@ -16,7 +20,9 @@ function useSectionTitle() {
   return match?.label ?? "WTS";
 }
 
-export function TopBar() {
+type ShellUser = { name: string; email: string; image: string | null };
+
+export function TopBar({ user }: { user: ShellUser }) {
   const title = useSectionTitle();
   const setCommandPaletteOpen = useUIStore((s) => s.setCommandPaletteOpen);
   const setQuickCaptureOpen = useUIStore((s) => s.setQuickCaptureOpen);
@@ -63,6 +69,36 @@ export function TopBar() {
           <Plus className="h-4 w-4" />
           New
         </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button aria-label="Account menu" className="rounded-full">
+              <Avatar className="h-7 w-7">
+                {user.image && <AvatarImage src={user.image} alt={user.name} />}
+                <AvatarFallback className="text-xs">{user.name[0]}</AvatarFallback>
+              </Avatar>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <div className="px-2 py-1.5">
+              <p className="text-sm font-medium">{user.name}</p>
+              <p className="text-xs" style={{ color: "var(--muted-2)" }}>{user.email}</p>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/settings">
+                <SettingsIcon className="h-3.5 w-3.5" /> Settings
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <form action={signOutAction} className="w-full">
+              <DropdownMenuItem asChild>
+                <button type="submit" className="w-full">
+                  <LogOut className="h-3.5 w-3.5" /> Sign out
+                </button>
+              </DropdownMenuItem>
+            </form>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );
