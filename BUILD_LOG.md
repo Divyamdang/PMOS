@@ -91,15 +91,31 @@ values as a template — never put real secrets there.
    (`https://<domain>/api/auth/callback/google`) to the Google OAuth
    client from step 2 above, if you haven't already.
 
-### What's still unverified
+### Live status
 
-Everything above was written and the code builds cleanly (`npm run build`,
-`npm run lint`, `tsc --noEmit` all pass), but none of it has been
-exercised against real credentials yet — this environment has no Supabase
-password or Google OAuth secret. Specifically unverified: the actual
-migration running against Supabase, the Google sign-in redirect flow,
-Gmail message fetching, and Google Calendar event import. First real test
-of each of those should happen right after `.env.local` is filled in.
+- **Supabase connection: done and verified.** `.env.local` has real
+  credentials. Two things worth knowing if this ever needs redoing:
+  - The **direct** connection host (`db.<ref>.supabase.co:5432`) is
+    IPv6-only on this Supabase project (no `A` record, only `AAAA`) — it's
+    unreachable from IPv4-only networks/sandboxes. Use the **pooler**
+    host (`aws-0-<region>.pooler.supabase.com`) for both `DATABASE_URL`
+    (port `6543`, `?pgbouncer=true`) and `DIRECT_URL` (port `5432`,
+    same pooler host, no pgbouncer flag) instead.
+  - Prisma CLI only auto-loads `.env`, not `.env.local` (that's a
+    Next.js-only convention) — migration commands need
+    `set -a && source .env.local && set +a` first, or the vars passed
+    inline, or they'll silently fall back to `.env`'s placeholders.
+  - First migration (`init`) applied cleanly: `npx prisma migrate dev`.
+    Verified live — the app boots, connects, and middleware correctly
+    redirects an unauthenticated request to `/sign-in` with no console or
+    server errors.
+- **Google OAuth: still pending.** `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`
+  in `.env.local` are still placeholders. Sign-in page renders correctly,
+  but clicking "Sign in with Google" will fail until real credentials are
+  set (see step 2 of the setup guide above). Gmail fetching and Calendar
+  sync depend on this too — can't be tested until sign-in works.
+- Everything builds and lints clean throughout
+  (`npm run build`, `npm run lint`, `tsc --noEmit`).
 
 ## Stack decisions (deviations from the brief)
 
