@@ -6,9 +6,20 @@ import { nextTaskKey } from "@/lib/keys";
 import { revalidatePath } from "next/cache";
 import type { DocumentType } from "@/generated/prisma";
 
-export async function createDocument(input: { title: string; type: DocumentType; projectId?: string | null }) {
+export async function createDocument(input: {
+  title: string;
+  type: DocumentType;
+  projectId?: string | null;
+  prd?: {
+    prdProblem: string; prdBackground: string; prdGoals: string; prdNonGoals: string;
+    prdUserStories: string; prdRequirements: string; prdAcceptanceCriteria: string;
+    prdSuccessMetrics: string; prdRisks: string; prdDependencies: string; prdRolloutPlan: string;
+  };
+}) {
   const project = input.projectId ? await db.project.findUnique({ where: { id: input.projectId } }) : null;
-  const doc = await db.document.create({ data: { title: input.title, type: input.type, projectId: input.projectId ?? null, content: "" } });
+  const doc = await db.document.create({
+    data: { title: input.title, type: input.type, projectId: input.projectId ?? null, content: "", ...(input.prd ?? {}) },
+  });
   revalidatePath("/documents");
   if (project) revalidatePath(`/projects/${project.key}`);
   return doc;

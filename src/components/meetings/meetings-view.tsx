@@ -6,10 +6,11 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/pmos/states";
 import { NewMeetingDialog } from "@/components/meetings/new-meeting-dialog";
+import { AIActionItemsDialog } from "@/components/meetings/ai-action-items-dialog";
 import { addActionItem, convertActionItemToTask } from "@/app/actions/meetings";
 import { formatDate } from "@/lib/format";
 import { toast } from "sonner";
-import { Plus, Video, ArrowRight, Check } from "lucide-react";
+import { Plus, Video, ArrowRight, Check, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import type { Meeting, MeetingParticipant, Person, ActionItem, Project } from "@/generated/prisma";
 
@@ -56,6 +57,7 @@ export function MeetingsView({
 function MeetingCard({ meeting }: { meeting: MeetingRow }) {
   const [newItem, setNewItem] = React.useState("");
   const [items, setItems] = React.useState(meeting.actionItems);
+  const [aiOpen, setAiOpen] = React.useState(false);
 
   return (
     <div className="rounded-xl border p-4" style={{ borderColor: "var(--border-subtle)", background: "var(--card)" }}>
@@ -75,6 +77,18 @@ function MeetingCard({ meeting }: { meeting: MeetingRow }) {
         </div>
       </div>
       {meeting.agenda && <p className="mt-2 text-sm" style={{ color: "var(--muted-2)" }}>{meeting.agenda}</p>}
+      {meeting.notes && (
+        <>
+          <p className="mt-2 text-sm" style={{ color: "var(--muted-2)" }}>{meeting.notes}</p>
+          <button
+            className="mt-1.5 flex w-fit items-center gap-1.5 text-xs"
+            style={{ color: "var(--route)" }}
+            onClick={() => setAiOpen(true)}
+          >
+            <Sparkles className="h-3.5 w-3.5" /> Extract action items with AI
+          </button>
+        </>
+      )}
 
       <div className="mt-3 flex flex-col gap-1.5">
         {items.map((item) => (
@@ -117,6 +131,13 @@ function MeetingCard({ meeting }: { meeting: MeetingRow }) {
           />
         </div>
       </div>
+
+      <AIActionItemsDialog
+        open={aiOpen}
+        onOpenChange={setAiOpen}
+        meetingId={meeting.id}
+        onCreated={(created) => setItems((prev) => [...prev, ...created.map((c) => ({ ...c, convertedTaskId: c.id }))])}
+      />
     </div>
   );
 }

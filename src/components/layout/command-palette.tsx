@@ -15,6 +15,7 @@ import {
 import { useUIStore } from "@/lib/store/ui-store";
 import { NAV_GROUPS, SETTINGS_ITEM } from "./nav-config";
 import { searchEverything, type SearchResults } from "@/app/actions/search";
+import { aiSearch } from "@/app/actions/ai";
 import { Plus, AlertTriangle, Ban, Clock3, Sparkles } from "lucide-react";
 
 export function CommandPalette() {
@@ -48,11 +49,39 @@ export function CommandPalette() {
     router.push(href);
   };
 
+  async function askAI() {
+    const q = query.trim();
+    if (!q) return;
+    const result = await aiSearch(q);
+    setOpen(false);
+    if (!result.ok) {
+      router.push(`/tasks?q=${encodeURIComponent(q)}`);
+      return;
+    }
+    const params = new URLSearchParams();
+    if (result.data.statusFilter && result.data.statusFilter !== "all") params.set("filter", result.data.statusFilter);
+    const text = [result.data.textKeyword, result.data.assigneeKeyword].filter(Boolean).join(" ");
+    if (text) params.set("q", text);
+    router.push(`/tasks?${params.toString()}`);
+  }
+
   return (
     <CommandDialog open={open} onOpenChange={setOpen} title="Command Palette" description="Jump anywhere or create something new">
       <CommandInput placeholder="Search PMOS, or type a command…" value={query} onValueChange={setQuery} />
       <CommandList>
         <CommandEmpty>No results. Try "task", "project", or a person's name.</CommandEmpty>
+
+        {query.trim().length >= 3 && (
+          <>
+            <CommandGroup heading="Ask AI">
+              <CommandItem onSelect={askAI}>
+                <Sparkles style={{ color: "var(--route)" }} />
+                Ask AI: "{query.trim()}"
+              </CommandItem>
+            </CommandGroup>
+            <CommandSeparator />
+          </>
+        )}
 
         {results && (
           <>

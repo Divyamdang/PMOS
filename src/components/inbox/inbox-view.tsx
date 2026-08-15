@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/pmos/states";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { convertInboxItem, deleteInboxItem } from "@/app/actions/inbox";
+import { AITaskDraftDialog } from "@/components/inbox/ai-task-draft-dialog";
 import { useUIStore } from "@/lib/store/ui-store";
 import { timeAgo } from "@/lib/format";
 import { toast } from "sonner";
 import { Sparkles, Plus, Trash2, ChevronDown, CheckSquare, PhoneCall, Bell, Video, Search, Lightbulb } from "lucide-react";
+import { DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import type { InboxItem, InboxConversion } from "@/generated/prisma";
 
 const CONVERSIONS: { value: InboxConversion; label: string; icon: typeof CheckSquare }[] = [
@@ -21,9 +23,18 @@ const CONVERSIONS: { value: InboxConversion; label: string; icon: typeof CheckSq
   { value: "IDEA", label: "Idea", icon: Lightbulb },
 ];
 
-export function InboxView({ items, openCaptureOnLoad }: { items: InboxItem[]; openCaptureOnLoad: boolean }) {
+export function InboxView({
+  items,
+  projects,
+  openCaptureOnLoad,
+}: {
+  items: InboxItem[];
+  projects: { id: string; key: string; name: string }[];
+  openCaptureOnLoad: boolean;
+}) {
   const router = useRouter();
   const setQuickCaptureOpen = useUIStore((s) => s.setQuickCaptureOpen);
+  const [aiDraftItem, setAiDraftItem] = React.useState<InboxItem | null>(null);
 
   React.useEffect(() => {
     if (openCaptureOnLoad) {
@@ -58,6 +69,10 @@ export function InboxView({ items, openCaptureOnLoad }: { items: InboxItem[]; op
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setAiDraftItem(item)}>
+                    <Sparkles className="h-3.5 w-3.5" style={{ color: "var(--route)" }} /> Draft task with AI
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   {CONVERSIONS.map((c) => (
                     <DropdownMenuItem
                       key={c.value}
@@ -84,6 +99,16 @@ export function InboxView({ items, openCaptureOnLoad }: { items: InboxItem[]; op
             </div>
           ))}
         </div>
+      )}
+
+      {aiDraftItem && (
+        <AITaskDraftDialog
+          open={!!aiDraftItem}
+          onOpenChange={(o) => !o && setAiDraftItem(null)}
+          itemId={aiDraftItem.id}
+          text={aiDraftItem.text}
+          projects={projects}
+        />
       )}
     </div>
   );

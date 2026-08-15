@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { dueLabel, formatDate } from "@/lib/format";
 import { PRIORITY_META, TASK_KANBAN_COLUMNS } from "@/lib/domain";
 import { AlertTriangle, PhoneCall, Clock3, Ban, ArrowRight, Sparkles } from "lucide-react";
+import { AIToolsMenu } from "@/components/dashboard/ai-tools-menu";
 
 function greeting() {
   const hour = new Date().getHours();
@@ -54,13 +55,16 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <section>
-        <h1 className="text-3xl" style={{ fontFamily: "var(--font-display)", fontStyle: "italic" }}>
-          {greeting()}, {firstName}.
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "var(--muted-2)" }}>
-          {statusLine(data.attention)}
-        </p>
+      <section className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl" style={{ fontFamily: "var(--font-display)", fontStyle: "italic" }}>
+            {greeting()}, {firstName}.
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: "var(--muted-2)" }}>
+            {statusLine(data.attention)}
+          </p>
+        </div>
+        <AIToolsMenu />
       </section>
 
       <section className="rounded-xl border p-5" style={{ borderColor: "var(--border-subtle)", background: "var(--card)" }}>

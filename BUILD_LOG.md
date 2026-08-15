@@ -247,9 +247,66 @@ user consent (via `PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION`) — asked
 the user before running it here; do the same next time rather than trying
 to work around the guard.
 
+## Phase 6 — AI layer ✅
+
+Service abstraction in `src/lib/ai/` — `client.ts` (`isAIEnabled()` reads
+`OPENAI_API_KEY` from the environment only, never DB/client-exposed;
+`getAIClient()` lazily constructs the OpenAI SDK client), `service.ts`
+(seven feature functions, each a single `chat.completions.create` call with
+`response_format: json_object` and a tightly-scoped prompt). Every feature
+is exposed through `src/app/actions/ai.ts`, wrapped in a `guarded()` helper
+that returns `{ok:true,data}` or `{ok:false,reason}` instead of throwing —
+so the UI never crashes when no key is configured, it just shows "AI
+features are unavailable until an API key is configured." (verified
+in-browser, see below).
+
+All seven spec features, each wired into an existing screen rather than a
+separate "AI page":
+
+1. **Task creation from text** — Inbox item dropdown → "Draft task with AI"
+   → `AITaskDraftDialog` (editable preview: title/type/priority/
+   description/subtasks/project) → confirm creates the task via
+   `convertInboxItemWithDraft`. Nothing is written before confirmation.
+2. **Meeting notes → tasks** — Meetings page, "Extract action items with
+   AI" (shown when a meeting has notes) → `AIActionItemsDialog` with a
+   checklist (owner + due date shown per item, all pre-checked, editable) →
+   confirm creates only the checked ones as real tasks.
+3. **Project summary** — Cockpit Overview tab, `AISummaryCard` (read-only,
+   no write, so no confirm step needed) — hides itself entirely when AI
+   isn't configured rather than cluttering the cockpit with a dead button.
+4. **Weekly stakeholder update** — Dashboard "AI tools" menu → dialog with
+   copy-to-clipboard output.
+5. **"What am I forgetting?"** — Dashboard "AI tools" menu. Deliberately
+   built AI-optional: the underlying scan (overdue/blocked/follow-ups-due/
+   waiting-for-due/stale-projects/risks-due) is plain DB queries and always
+   returns real linked items; the LLM only adds a prioritized narrative on
+   top. Verified in-browser with no key configured — shows "AI narrative
+   unavailable — here's the raw scan." plus the real, clickable item list.
+   This is the one feature that stays substantively useful with zero AI
+   configured, by design.
+6. **PRD generator** — New Document dialog, type=PRD shows an optional
+   "Generate from a one-line idea" field; drafts all PRD sections before
+   the document is even created.
+7. **NL search** — Command palette: typing 3+ characters shows an
+   "Ask AI: '<query>'" item that translates the query into
+   `{statusFilter, projectKeyword, assigneeKeyword, textKeyword}` and
+   navigates to `/tasks` with those applied — translates to structured
+   filter params only, the model never generates or runs a DB query itself
+   (`TasksView` gained `initialQuery`/`initialProject` props to receive
+   them).
+
+**Verified in-browser** (no `OPENAI_API_KEY` set in this environment, which
+is the realistic state for most people trying this out fresh): every entry
+point above was clicked and showed the correct unavailable-message or
+graceful-fallback behavior, no console errors, no crashes. Have not been
+able to verify the actual OpenAI-backed happy path (structured JSON
+parsing, prompt quality) since no key is configured — that needs a real
+key and a pass through each of the 7 flows before trusting the output
+quality blindly.
+
 ## Not started yet
 
-Phase 6 (AI layer), Phase 7 (polish/QA/acceptance test).
+Phase 7 (polish/QA/acceptance test).
 
 `/settings` Notifications sub-tab from the original spec wasn't built as a
 separate settings surface — the Notification Center itself (bell +

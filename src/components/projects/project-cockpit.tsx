@@ -22,6 +22,7 @@ import type { Health, TaskStatus } from "@/generated/prisma";
 import { NewTaskDialog } from "@/components/tasks/new-task-dialog";
 import { NewRiskDialog } from "@/components/risks/new-risk-dialog";
 import { NewDecisionDialog } from "@/components/decisions/new-decision-dialog";
+import { AISummaryCard } from "@/components/projects/ai-summary-card";
 import { ShieldAlert, GitBranch, Sparkles } from "lucide-react";
 
 export function ProjectCockpit({ data }: { data: ProjectCockpitData }) {
@@ -237,6 +238,7 @@ function OverviewTab({ data }: { data: ProjectCockpitData }) {
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
       <div className="flex flex-col gap-4">
+        <AISummaryCard projectId={data.project.id} />
         <OverviewCard title="Next action">
           {data.nextAction ? (
             <TaskRow task={data.nextAction} showProject={false} />

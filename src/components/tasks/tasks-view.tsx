@@ -35,22 +35,29 @@ export function TasksView({
   projects,
   openNewOnLoad,
   initialFilter,
+  initialQuery,
+  initialProject,
 }: {
   tasks: TaskWithRelations[];
   projects: { id: string; key: string; name: string }[];
   openNewOnLoad: boolean;
   initialFilter?: string;
+  initialQuery?: string;
+  initialProject?: string;
 }) {
   const router = useRouter();
   const openTaskDrawer = useUIStore((s) => s.openTaskDrawer);
   const [view, setView] = React.useState<"board" | "list">("board");
-  const [query, setQuery] = React.useState("");
+  const [query, setQuery] = React.useState(initialQuery ?? "");
   const [filter, setFilter] = React.useState<Filter>((FILTERS as readonly string[]).includes(initialFilter ?? "") ? (initialFilter as Filter) : "all");
-  const [projectFilter, setProjectFilter] = React.useState<string>("all");
+  const [projectFilter, setProjectFilter] = React.useState<string>(initialProject && projects.some((p) => p.key === initialProject) ? initialProject : "all");
   const [newOpen, setNewOpen] = React.useState(openNewOnLoad);
   const [sortKey, setSortKey] = React.useState<"priority" | "due" | "title">("priority");
 
-  let filtered = tasks.filter((t) => t.title.toLowerCase().includes(query.toLowerCase()) || t.taskKey.toLowerCase().includes(query.toLowerCase()));
+  const q = query.toLowerCase();
+  let filtered = tasks.filter(
+    (t) => t.title.toLowerCase().includes(q) || t.taskKey.toLowerCase().includes(q) || t.assignee?.name.toLowerCase().includes(q) || t.project?.name.toLowerCase().includes(q)
+  );
   if (projectFilter !== "all") filtered = filtered.filter((t) => t.project?.key === projectFilter);
   if (filter === "overdue") filtered = filtered.filter((t) => t.status !== "DONE" && isOverdue(t.dueDate));
   if (filter === "blocked") filtered = filtered.filter((t) => t.status === "BLOCKED");
