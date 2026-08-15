@@ -1,0 +1,698 @@
+// PMOS data model. See BUILD_LOG.md / master prompt Section 5 for the spec
+// this was built against.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Core identity
+// ---------------------------------------------------------------------------
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  avatar    String?
+  role      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ownedProjects    Project[]     @relation("ProjectOwner")
+  ownedInitiatives Initiative[]  @relation("InitiativeOwner")
+  ownedWorkstreams Workstream[]  @relation("WorkstreamOwner")
+  assignedTasks    Task[]        @relation("TaskAssignee")
+  reportedTasks    Task[]        @relation("TaskReporter")
+  ownedRisks       Risk[]        @relation("RiskOwner")
+  ownedDecisions   Decision[]    @relation("DecisionOwner")
+  ownedIncidents   Incident[]    @relation("IncidentOwner")
+  comments         Comment[]
+  activityEvents   ActivityEvent[]
+}
+
+// ---------------------------------------------------------------------------
+// Structure: Initiatives -> Projects -> Workstreams -> Tasks
+// ---------------------------------------------------------------------------
+
+enum ProjectStatus {
+  BACKLOG
+  PLANNED
+  IN_PROGRESS
+  AT_RISK
+  BLOCKED
+  COMPLETED
+}
+
+enum Health {
+  ON_TRACK
+  AT_RISK
+  OFF_TRACK
+  BLOCKED
+}
+
+enum Priority {
+  P0
+  P1
+  P2
+  P3
+}
+
+model Initiative {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(PLANNED)
+  ownerId     String?
+  owner       User?     @relation("InitiativeOwner", fields: [ownerId], references: [id])
+  targetDate  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  projects Project[]
+}
+
+model Project {
+  id           String        @id @default(cuid())
+  key          String        @unique
+  name         String
+  description  String?
+  status       ProjectStatus @default(PLANNED)
+  health       Health        @default(ON_TRACK)
+  priority     Priority      @default(P2)
+  ownerId      String?
+  owner        User?         @relation("ProjectOwner", fields: [ownerId], references: [id])
+  initiativeId String?
+  initiative   Initiative?   @relation(fields: [initiativeId], references: [id])
+  startDate    DateTime?
+  targetDate   DateTime?
+  archived     Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  workstreams  Workstream[]
+  tasks        Task[]
+  risks        Risk[]
+  decisions    Decision[]
+  meetings     Meeting[]
+  documents    Document[]
+  metrics      Metric[]
+  incidents    Incident[]
+  followUps    FollowUp[]
+  waitingFor   WaitingForItem[]
+  releases     ReleaseProject[]
+  vendors      VendorProject[]
+  activityEvents ActivityEvent[]
+}
+
+model Workstream {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  ownerId     String?
+  owner       User?    @relation("WorkstreamOwner", fields: [ownerId], references: [id])
+  createdAt   DateTime @default(now())
+
+  tasks Task[]
+}
+
+// ---------------------------------------------------------------------------
+// Tasks (both engineering-style project work and the PM's own operational
+// work share this entity, distinguished by `type`)
+// ---------------------------------------------------------------------------
+
+enum TaskType {
+  TASK
+  FEATURE
+  BUG
+  IMPROVEMENT
+  TECH_DEBT
+  RESEARCH
+  ANALYTICS
+  FOLLOW_UP
+  MEETING
+  CALL
+  COMMUNICATION
+  REMINDER
+  VENDOR
+  INCIDENT
+  DECISION
+  DOCUMENTATION
+  IDEA
+}
+
+enum TaskStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  WAITING
+  BLOCKED
+  DONE
+}
+
+enum DependencyType {
+  BLOCKS
+  BLOCKED_BY
+  DEPENDS_ON
+  RELATES_TO
+  DUPLICATES
+}
+
+model Task {
+  id           String     @id @default(cuid())
+  taskKey      String     @unique
+  title        String
+  description  String?
+  type         TaskType   @default(TASK)
+  status       TaskStatus @default(TODO)
+  priority     Priority   @default(P2)
+  projectId    String?
+  project      Project?   @relation(fields: [projectId], references: [id])
+  workstreamId String?
+  workstream   Workstream? @relation(fields: [workstreamId], references: [id])
+  assigneeId   String?
+  assignee     User?      @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  reporterId   String?
+  reporter     User?      @relation("TaskReporter", fields: [reporterId], references: [id])
+  parentTaskId String?
+  parentTask   Task?      @relation("Subtasks", fields: [parentTaskId], references: [id], onDelete: Restrict)
+  subtasks     Task[]     @relation("Subtasks")
+  dueDate      DateTime?
+  startDate    DateTime?
+  estimate     Float?
+  labels       String?    // comma-separated
+  isPersonal   Boolean    @default(false) // PM's own operational work vs project work
+
+  // fintech-specific, optional/conditional fields
+  paymentGateway String?
+  paymentMethod  String?
+  network        String?
+  transactionType String?
+  merchant       String?
+  environment    String?
+  errorCode      String?
+  failureReason  String?
+  transactionVolume Float?
+  successRate    Float?
+
+  personId  String?
+  person    Person? @relation(fields: [personId], references: [id])
+  vendorId  String?
+  vendor    Vendor? @relation(fields: [vendorId], references: [id])
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  comments      Comment[]
+  attachments   Attachment[]
+  activityEvents ActivityEvent[]
+  dependenciesFrom TaskDependency[] @relation("DependencyFrom")
+  dependenciesTo   TaskDependency[] @relation("DependencyTo")
+  meetingActionItems ActionItem[]
+  followUps     FollowUp[]
+  waitingFor    WaitingForItem[]
+  decisions     DecisionTask[]
+}
+
+model TaskDependency {
+  id         String         @id @default(cuid())
+  fromTaskId String
+  fromTask   Task           @relation("DependencyFrom", fields: [fromTaskId], references: [id], onDelete: Cascade)
+  toTaskId   String
+  toTask     Task           @relation("DependencyTo", fields: [toTaskId], references: [id], onDelete: Cascade)
+  type       DependencyType
+  createdAt  DateTime       @default(now())
+
+  @@unique([fromTaskId, toTaskId, type])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?    @relation(fields: [authorId], references: [id])
+  body      String
+  createdAt DateTime @default(now())
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  taskId    String?
+  task      Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  documentId String?
+  document  Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  fileName  String
+  filePath  String
+  fileSize  Int?
+  mimeType  String?
+  createdAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// People & Vendors
+// ---------------------------------------------------------------------------
+
+enum PersonCategory {
+  ENGINEERING
+  DESIGN
+  FINANCE
+  OPERATIONS
+  LEADERSHIP
+  SALES
+  LEGAL
+  COMPLIANCE
+  VENDOR
+  EXTERNAL
+  OTHER
+}
+
+model Person {
+  id             String         @id @default(cuid())
+  name           String
+  role           String?
+  department     String?
+  company        String?
+  email          String?
+  phone          String?
+  avatar         String?
+  category       PersonCategory @default(OTHER)
+  notes          String?
+  lastInteraction DateTime?
+  nextFollowUp   DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  tasks       Task[]
+  followUps   FollowUp[]
+  waitingFor  WaitingForItem[]
+  interactions Interaction[]
+  meetings    MeetingParticipant[]
+}
+
+model Interaction {
+  id        String   @id @default(cuid())
+  personId  String
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  note      String
+  channel   String?
+  date      DateTime @default(now())
+}
+
+enum VendorStatus {
+  ACTIVE
+  EVALUATING
+  INACTIVE
+}
+
+model Vendor {
+  id             String       @id @default(cuid())
+  name           String
+  category       String?
+  description    String?
+  website         String?
+  primaryContact String?
+  email          String?
+  phone          String?
+  notes          String?
+  status         VendorStatus @default(ACTIVE)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  tasks      Task[]
+  followUps  FollowUp[]
+  waitingFor WaitingForItem[]
+  meetings   MeetingVendor[]
+  projects   VendorProject[]
+  incidents  Incident[]
+  decisions  Decision[]
+}
+
+model VendorProject {
+  vendorId  String
+  vendor    Vendor  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([vendorId, projectId])
+}
+
+// ---------------------------------------------------------------------------
+// Follow-ups & Waiting For
+// ---------------------------------------------------------------------------
+
+enum FollowUpChannel {
+  EMAIL
+  PHONE
+  WHATSAPP
+  SLACK
+  MEETING
+  OTHER
+}
+
+enum FollowUpStatus {
+  TO_CONTACT
+  CONTACTED
+  WAITING_FOR_RESPONSE
+  FOLLOW_UP_DUE
+  RESOLVED
+  CLOSED
+}
+
+model FollowUp {
+  id             String          @id @default(cuid())
+  topic          String
+  personId       String?
+  person         Person?         @relation(fields: [personId], references: [id])
+  vendorId       String?
+  vendor         Vendor?         @relation(fields: [vendorId], references: [id])
+  lastContactDate DateTime?
+  followUpDate   DateTime?
+  status         FollowUpStatus  @default(TO_CONTACT)
+  priority       Priority        @default(P2)
+  channel        FollowUpChannel @default(EMAIL)
+  relatedProjectId String?
+  relatedProject Project?        @relation(fields: [relatedProjectId], references: [id])
+  relatedTaskId  String?
+  relatedTask    Task?           @relation(fields: [relatedTaskId], references: [id])
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+enum WaitingForStatus {
+  WAITING
+  FOLLOW_UP_DUE
+  RECEIVED
+  CANCELLED
+}
+
+model WaitingForItem {
+  id            String           @id @default(cuid())
+  who           String
+  personId      String?
+  person        Person?          @relation(fields: [personId], references: [id])
+  vendorId      String?
+  vendor        Vendor?          @relation(fields: [vendorId], references: [id])
+  what          String
+  projectId     String?
+  project       Project?         @relation(fields: [projectId], references: [id])
+  taskId        String?
+  task          Task?            @relation(fields: [taskId], references: [id])
+  since         DateTime         @default(now())
+  expectedDate  DateTime?
+  followUpDate  DateTime?
+  status        WaitingForStatus @default(WAITING)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Meetings, Decisions, Risks
+// ---------------------------------------------------------------------------
+
+model Meeting {
+  id        String   @id @default(cuid())
+  title     String
+  date      DateTime
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+  agenda    String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  participants MeetingParticipant[]
+  actionItems  ActionItem[]
+  vendors      MeetingVendor[]
+}
+
+model MeetingParticipant {
+  meetingId String
+  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  personId  String
+  person    Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@id([meetingId, personId])
+}
+
+model MeetingVendor {
+  meetingId String
+  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  vendorId  String
+  vendor    Vendor  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@id([meetingId, vendorId])
+}
+
+model ActionItem {
+  id          String   @id @default(cuid())
+  meetingId   String
+  meeting     Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  description String
+  ownerName   String?
+  dueDate     DateTime?
+  convertedTaskId String?
+  convertedTask   Task? @relation(fields: [convertedTaskId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model Decision {
+  id             String   @id @default(cuid())
+  decision       String
+  context        String?
+  date           DateTime @default(now())
+  ownerId        String?
+  owner          User?    @relation("DecisionOwner", fields: [ownerId], references: [id])
+  participants   String?  // comma-separated names
+  alternatives   String?
+  reason         String?
+  outcome        String?
+  relatedProjectId String?
+  relatedProject Project? @relation(fields: [relatedProjectId], references: [id])
+  vendorId       String?
+  vendor         Vendor?  @relation(fields: [vendorId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  relatedTasks DecisionTask[]
+}
+
+model DecisionTask {
+  decisionId String
+  decision   Decision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+  taskId     String
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@id([decisionId, taskId])
+}
+
+enum RiskStatus {
+  MONITORING
+  MITIGATED
+  ESCALATED
+  CLOSED
+}
+
+model Risk {
+  id          String     @id @default(cuid())
+  risk        String
+  description String?
+  probability Int        @default(2) // 1-5
+  impact      Int        @default(2) // 1-5
+  ownerId     String?
+  owner       User?      @relation("RiskOwner", fields: [ownerId], references: [id])
+  mitigation  String?
+  dueDate     DateTime?
+  status      RiskStatus @default(MONITORING)
+  projectId   String?
+  project     Project?   @relation(fields: [projectId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Releases, Documents, Metrics, Incidents
+// ---------------------------------------------------------------------------
+
+enum ReleaseStatus {
+  PLANNED
+  IN_PROGRESS
+  TESTING
+  SHIPPED
+  DELAYED
+}
+
+model Release {
+  id         String        @id @default(cuid())
+  name       String
+  version    String?
+  targetDate DateTime?
+  status     ReleaseStatus @default(PLANNED)
+  notes      String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  projects ReleaseProject[]
+}
+
+model ReleaseProject {
+  releaseId String
+  release   Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([releaseId, projectId])
+}
+
+enum DocumentType {
+  PRD
+  BRD
+  MEETING_NOTES
+  RESEARCH
+  PRODUCT_DECISION
+  RELEASE_NOTES
+  REQUIREMENTS
+  NOTES
+}
+
+model Document {
+  id        String       @id @default(cuid())
+  title     String
+  type      DocumentType @default(NOTES)
+  content   String       @default("")
+  projectId String?
+  project   Project?     @relation(fields: [projectId], references: [id])
+  // PRD template fields (nullable, only used when type = PRD)
+  prdProblem          String?
+  prdBackground        String?
+  prdGoals             String?
+  prdNonGoals          String?
+  prdUserStories       String?
+  prdRequirements      String?
+  prdAcceptanceCriteria String?
+  prdSuccessMetrics    String?
+  prdRisks             String?
+  prdDependencies      String?
+  prdRolloutPlan       String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  attachments Attachment[]
+}
+
+model Metric {
+  id        String   @id @default(cuid())
+  name      String
+  value     Float
+  unit      String?
+  date      DateTime @default(now())
+  target    Float?
+  direction String?  // "up" | "down" (which way is good)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+enum IncidentSeverity {
+  SEV1
+  SEV2
+  SEV3
+  SEV4
+}
+
+enum IncidentStatus {
+  OPEN
+  INVESTIGATING
+  MONITORING
+  RESOLVED
+}
+
+model Incident {
+  id          String           @id @default(cuid())
+  incidentKey String           @unique
+  title       String
+  severity    IncidentSeverity @default(SEV3)
+  status      IncidentStatus   @default(OPEN)
+  startTime   DateTime         @default(now())
+  endTime     DateTime?
+  impact      String?
+  rootCause   String?
+  resolution  String?
+  postmortem  String?
+  ownerId     String?
+  owner       User?            @relation("IncidentOwner", fields: [ownerId], references: [id])
+  projectId   String?
+  project     Project?         @relation(fields: [projectId], references: [id])
+  vendorId    String?
+  vendor      Vendor?          @relation(fields: [vendorId], references: [id])
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Activity log
+// ---------------------------------------------------------------------------
+
+model ActivityEvent {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  entityType String   // "Task" | "Project" | ...
+  entityId   String
+  action     String   // e.g. "status_changed", "created", "archived"
+  message    String   // human-readable, e.g. "moved TASK-123 to In Progress"
+  fromValue  String?
+  toValue    String?
+  createdAt  DateTime @default(now())
+
+  taskId    String?
+  task      Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Inbox — rapid capture, triaged into other entities
+// ---------------------------------------------------------------------------
+
+enum InboxConversion {
+  TASK
+  FOLLOW_UP
+  REMINDER
+  MEETING
+  RESEARCH
+  IDEA
+}
+
+model InboxItem {
+  id            String           @id @default(cuid())
+  text          String
+  converted     Boolean          @default(false)
+  convertedType InboxConversion?
+  convertedTaskId String?
+  createdAt     DateTime         @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Settings (single row, single-user app)
+// ---------------------------------------------------------------------------
+
+model Settings {
+  id                 Int      @id @default(1)
+  userName           String   @default("Divyam")
+  theme              String   @default("dark") // dark | light | system
+  accentColor        String   @default("#4C7EF0")
+  workingHoursStart  String   @default("09:00")
+  workingHoursEnd    String   @default("18:00")
+  aiEnabled          Boolean  @default(false)
+  updatedAt          DateTime @updatedAt
+}

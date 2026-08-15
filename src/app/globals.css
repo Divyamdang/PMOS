@@ -1,0 +1,178 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ---------------------------------------------------------------------
+   PMOS design tokens — see DESIGN_SYSTEM.md. Six named accents, everything
+   else (surfaces, muted text, borders) derived from Graphite/Bone.
+   --------------------------------------------------------------------- */
+
+:root {
+  --font-display: var(--font-fraunces);
+  --font-body: var(--font-inter);
+  --font-data: var(--font-plex-mono);
+
+  /* Light theme (paper, not stark white) */
+  --graphite: #f7f6f3;
+  --bone: #16181d;
+  --surface: #ffffff;
+  --surface-hover: #f0eee9;
+  --border-subtle: #e4e1da;
+  --muted: #6b6b68;
+  --muted-2: #8f8d87;
+
+  --route: #3763d6;
+  --route-soft: #3763d61a;
+  --settled: #1f9d5f;
+  --settled-soft: #1f9d5f1a;
+  --amber: #b9760f;
+  --amber-soft: #b9760f1a;
+  --coral: #c8402f;
+  --coral-soft: #c8402f1a;
+
+  --background: var(--graphite);
+  --foreground: var(--bone);
+  --card: var(--surface);
+  --card-foreground: var(--bone);
+  --popover: var(--surface);
+  --popover-foreground: var(--bone);
+  --primary: var(--route);
+  --primary-foreground: #ffffff;
+  --secondary: var(--surface-hover);
+  --secondary-foreground: var(--bone);
+  --muted-bg: var(--surface-hover);
+  --muted-foreground: var(--muted);
+  --accent: var(--surface-hover);
+  --accent-foreground: var(--bone);
+  --destructive: var(--coral);
+  --destructive-foreground: #ffffff;
+  --border: var(--border-subtle);
+  --input: var(--border-subtle);
+  --ring: var(--route);
+  --radius: 0.75rem;
+}
+
+.dark {
+  --graphite: #14161b;
+  --bone: #ede9e1;
+  --surface: #1f2125;
+  --surface-hover: #25272b;
+  --border-subtle: #2a2b2f;
+  --muted: #96958f;
+  --muted-2: #6a6b6a;
+
+  --route: #4c7ef0;
+  --route-soft: #4c7ef01f;
+  --settled: #34c77e;
+  --settled-soft: #34c77e1f;
+  --amber: #efa23d;
+  --amber-soft: #efa23d1f;
+  --coral: #ea5b4b;
+  --coral-soft: #ea5b4b1f;
+
+  --background: var(--graphite);
+  --foreground: var(--bone);
+  --card: var(--surface);
+  --card-foreground: var(--bone);
+  --popover: var(--surface);
+  --popover-foreground: var(--bone);
+  --primary: var(--route);
+  --primary-foreground: #0a0b0d;
+  --secondary: var(--surface-hover);
+  --secondary-foreground: var(--bone);
+  --muted-bg: var(--surface-hover);
+  --muted-foreground: var(--muted);
+  --accent: var(--surface-hover);
+  --accent-foreground: var(--bone);
+  --destructive: var(--coral);
+  --destructive-foreground: #0a0b0d;
+  --border: var(--border-subtle);
+  --input: var(--border-subtle);
+  --ring: var(--route);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted-bg);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-route: var(--route);
+  --color-route-soft: var(--route-soft);
+  --color-settled: var(--settled);
+  --color-settled-soft: var(--settled-soft);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --color-coral: var(--coral);
+  --color-coral-soft: var(--coral-soft);
+  --color-muted-2: var(--muted-2);
+
+  --font-display: var(--font-display);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-data);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+}
+
+* {
+  border-color: var(--border);
+}
+
+::selection {
+  background: var(--route-soft);
+  color: var(--foreground);
+}
+
+:focus-visible {
+  outline: 2px solid var(--route);
+  outline-offset: 2px;
+}
+
+@keyframes routing-node-in {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.routing-node {
+  animation: routing-node-in 400ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
