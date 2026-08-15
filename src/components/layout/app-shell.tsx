@@ -5,6 +5,7 @@ import { TopBar } from "./top-bar";
 import { CommandPalette } from "./command-palette";
 import { KeyboardShortcuts } from "./keyboard-shortcuts";
 import { QuickCapture } from "./quick-capture";
+import { TaskDrawer } from "@/components/pmos/task-drawer";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -19,6 +20,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <CommandPalette />
       <KeyboardShortcuts />
       <QuickCapture />
+      <TaskDrawer />
     </div>
   );
 }
