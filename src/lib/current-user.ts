@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 
 const OWNER_EMAIL = "divyamdang02@gmail.com";
 
-/** Single-user app — this is always the PM using PMOS. */
+/** Resolves to the signed-in team member for this request. */
 export async function getCurrentUser() {
   const user = await db.user.findUnique({ where: { email: OWNER_EMAIL } });
   if (user) return user;

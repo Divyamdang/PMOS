@@ -13,11 +13,14 @@ import { NewTaskDialog } from "@/components/tasks/new-task-dialog";
 import { PriorityBadge, TaskStatusBadge } from "@/components/pmos/badges";
 import { TaskKeyStamp } from "@/components/pmos/task-key";
 import { updateTaskStatus } from "@/app/actions/tasks";
+import { exportTasksToExcel } from "@/app/actions/export-excel";
+import { downloadBase64File } from "@/lib/download-file";
 import { useUIStore } from "@/lib/store/ui-store";
 import { TASK_KANBAN_COLUMNS, TASK_STATUS_META } from "@/lib/domain";
 import { dueLabel, isOverdue } from "@/lib/format";
-import { Search, Plus, LayoutGrid, List as ListIcon, ListChecks } from "lucide-react";
+import { Search, Plus, LayoutGrid, List as ListIcon, ListChecks, FileSpreadsheet, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import type { Task, TaskStatus } from "@/generated/prisma";
 
 type TaskWithRelations = Task & {
@@ -52,6 +55,18 @@ export function TasksView({
   const [filter, setFilter] = React.useState<Filter>((FILTERS as readonly string[]).includes(initialFilter ?? "") ? (initialFilter as Filter) : "all");
   const [projectFilter, setProjectFilter] = React.useState<string>(initialProject && projects.some((p) => p.key === initialProject) ? initialProject : "all");
   const [newOpen, setNewOpen] = React.useState(openNewOnLoad);
+  const [exporting, setExporting] = React.useState(false);
+
+  async function exportExcel() {
+    setExporting(true);
+    try {
+      const base64 = await exportTasksToExcel();
+      downloadBase64File(base64, `wts-tasks-${new Date().toISOString().slice(0, 10)}.xlsx`, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      toast.success("Exported to Excel.");
+    } finally {
+      setExporting(false);
+    }
+  }
   const [sortKey, setSortKey] = React.useState<"priority" | "due" | "title">("priority");
 
   const q = query.toLowerCase();
@@ -94,6 +109,10 @@ export function TasksView({
             <ViewButton active={view === "board"} onClick={() => setView("board")} icon={LayoutGrid} label="Board view" />
             <ViewButton active={view === "list"} onClick={() => setView("list")} icon={ListIcon} label="List view" />
           </div>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={exportExcel} disabled={exporting}>
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+            Export
+          </Button>
           <Button size="sm" className="gap-1.5" onClick={() => setNewOpen(true)}>
             <Plus className="h-4 w-4" /> New task
           </Button>

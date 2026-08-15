@@ -30,7 +30,6 @@ model User {
   assignedTasks    Task[]        @relation("TaskAssignee")
   reportedTasks    Task[]        @relation("TaskReporter")
   ownedRisks       Risk[]        @relation("RiskOwner")
-  ownedDecisions   Decision[]    @relation("DecisionOwner")
   ownedIncidents   Incident[]    @relation("IncidentOwner")
   comments         Comment[]
   activityEvents   ActivityEvent[]
@@ -98,10 +97,8 @@ model Project {
   workstreams  Workstream[]
   tasks        Task[]
   risks        Risk[]
-  decisions    Decision[]
   meetings     Meeting[]
   documents    Document[]
-  metrics      Metric[]
   incidents    Incident[]
   followUps    FollowUp[]
   waitingFor   WaitingForItem[]
@@ -228,7 +225,6 @@ model Task {
   meetingActionItems ActionItem[]
   followUps     FollowUp[]
   waitingFor    WaitingForItem[]
-  decisions     DecisionTask[]
 }
 
 model TaskDependency {
@@ -342,7 +338,6 @@ model Vendor {
   meetings   MeetingVendor[]
   projects   VendorProject[]
   incidents  Incident[]
-  decisions  Decision[]
 }
 
 model VendorProject {
@@ -425,7 +420,7 @@ model WaitingForItem {
 }
 
 // ---------------------------------------------------------------------------
-// Meetings, Decisions, Risks
+// Meetings, Risks
 // ---------------------------------------------------------------------------
 
 model Meeting {
@@ -474,36 +469,6 @@ model ActionItem {
   createdAt   DateTime @default(now())
 }
 
-model Decision {
-  id             String   @id @default(cuid())
-  decision       String
-  context        String?
-  date           DateTime @default(now())
-  ownerId        String?
-  owner          User?    @relation("DecisionOwner", fields: [ownerId], references: [id])
-  participants   String?  // comma-separated names
-  alternatives   String?
-  reason         String?
-  outcome        String?
-  relatedProjectId String?
-  relatedProject Project? @relation(fields: [relatedProjectId], references: [id])
-  vendorId       String?
-  vendor         Vendor?  @relation(fields: [vendorId], references: [id])
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  relatedTasks DecisionTask[]
-}
-
-model DecisionTask {
-  decisionId String
-  decision   Decision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
-  taskId     String
-  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-
-  @@id([decisionId, taskId])
-}
-
 enum RiskStatus {
   MONITORING
   MITIGATED
@@ -529,7 +494,7 @@ model Risk {
 }
 
 // ---------------------------------------------------------------------------
-// Releases, Documents, Metrics, Incidents
+// Releases, Documents, Incidents
 // ---------------------------------------------------------------------------
 
 enum ReleaseStatus {
@@ -596,19 +561,6 @@ model Document {
   updatedAt DateTime     @updatedAt
 
   attachments Attachment[]
-}
-
-model Metric {
-  id        String   @id @default(cuid())
-  name      String
-  value     Float
-  unit      String?
-  date      DateTime @default(now())
-  target    Float?
-  direction String?  // "up" | "down" (which way is good)
-  projectId String?
-  project   Project? @relation(fields: [projectId], references: [id])
-  createdAt DateTime @default(now())
 }
 
 enum IncidentSeverity {

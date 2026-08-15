@@ -61,7 +61,7 @@ export function ProjectsView({ projects, openNewOnLoad }: { projects: ProjectWit
         <EmptyState
           icon={FolderKanban}
           title="Your product story starts here."
-          description="Create your first project — routing, tasks, risks, and decisions all live under it."
+          description="Create your first project — routing, tasks, and risks all live under it."
           action={{ label: "New project", onClick: () => setNewOpen(true) }}
         />
       ) : view === "board" ? (

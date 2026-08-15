@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 /** Every meaningful mutation writes an event here — surfaced in project/task
  * activity feeds. See master prompt Section 5, "Activity log". */
 export async function logActivity(params: {
-  entityType: "Task" | "Project" | "Risk" | "Decision" | "FollowUp" | "WaitingForItem" | "Meeting";
+  entityType: "Task" | "Project" | "Risk" | "FollowUp" | "WaitingForItem" | "Meeting";
   entityId: string;
   action: string;
   message: string;

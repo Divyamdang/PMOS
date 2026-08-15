@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
 import { updateSettings } from "@/app/actions/settings";
 import { exportAllDataJson, exportTasksCsv, createBackup, restoreBackup } from "@/app/actions/data";
+import { exportTasksToExcel } from "@/app/actions/export-excel";
+import { downloadBase64File } from "@/lib/download-file";
 import { formatDate } from "@/lib/format";
 import { toast } from "sonner";
-import { Download, Database, Sparkles, RotateCcw } from "lucide-react";
+import { Download, Database, Sparkles, RotateCcw, FileSpreadsheet } from "lucide-react";
 import type { Settings } from "@/generated/prisma";
 
 type Backup = { fileName: string; size: number; createdAt: string };
@@ -60,8 +62,8 @@ export function SettingsView({
               <p className="text-sm font-medium">{aiKeyConfigured ? "AI is available" : "AI is unavailable"}</p>
               <p className="text-xs" style={{ color: "var(--muted-2)" }}>
                 {aiKeyConfigured
-                  ? "OPENAI_API_KEY is configured. AI features work throughout PMOS."
-                  : "Set OPENAI_API_KEY in your environment to enable AI features. Everything else in PMOS works without it."}
+                  ? "OPENAI_API_KEY is configured. AI features work throughout WTS."
+                  : "Set OPENAI_API_KEY in your environment to enable AI features. Everything else in WTS works without it."}
               </p>
             </div>
           </div>
@@ -143,7 +145,7 @@ function DataTab({ backups }: { backups: Backup[] }) {
             className="gap-1.5"
             onClick={async () => {
               const json = await exportAllDataJson();
-              download(json, `pmos-export-${new Date().toISOString().slice(0, 10)}.json`, "application/json");
+              download(json, `wts-export-${new Date().toISOString().slice(0, 10)}.json`, "application/json");
             }}
           >
             <Download className="h-3.5 w-3.5" /> Export JSON
@@ -154,17 +156,29 @@ function DataTab({ backups }: { backups: Backup[] }) {
             className="gap-1.5"
             onClick={async () => {
               const csv = await exportTasksCsv();
-              download(csv, `pmos-tasks-${new Date().toISOString().slice(0, 10)}.csv`, "text/csv");
+              download(csv, `wts-tasks-${new Date().toISOString().slice(0, 10)}.csv`, "text/csv");
             }}
           >
             <Download className="h-3.5 w-3.5" /> Export tasks CSV
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            onClick={async () => {
+              const base64 = await exportTasksToExcel();
+              downloadBase64File(base64, `wts-tasks-${new Date().toISOString().slice(0, 10)}.xlsx`, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+              toast.success("Exported to Excel.");
+            }}
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5" /> Export tasks Excel
           </Button>
         </div>
       </div>
 
       <div className="flex flex-col gap-2">
         <p className="text-sm font-medium">Backup & restore</p>
-        <p className="text-xs" style={{ color: "var(--muted-2)" }}>Backs up the local database file. Restoring overwrites current data — a safety copy of the current state is made automatically first. Restart PMOS after restoring.</p>
+        <p className="text-xs" style={{ color: "var(--muted-2)" }}>Backs up the local database file. Restoring overwrites current data — a safety copy of the current state is made automatically first. Restart WTS after restoring.</p>
         <Button
           size="sm"
           variant="outline"
@@ -194,7 +208,7 @@ function DataTab({ backups }: { backups: Backup[] }) {
                     onClick={async () => {
                       setRestoring(b.fileName);
                       await restoreBackup(b.fileName);
-                      toast.success("Restored. Restart PMOS to fully reload.");
+                      toast.success("Restored. Restart WTS to fully reload.");
                       setRestoring(null);
                     }}
                   >

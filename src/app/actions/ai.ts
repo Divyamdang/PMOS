@@ -78,19 +78,17 @@ export async function aiSummarizeProject(projectId: string): Promise<AIResult<st
 export async function aiWeeklyUpdate(): Promise<AIResult<string>> {
   return guarded(async () => {
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const [shipped, inProgress, blocked, risks, decisions] = await Promise.all([
+    const [shipped, inProgress, blocked, risks] = await Promise.all([
       db.task.findMany({ where: { status: "DONE", completedAt: { gte: since } }, include: { project: true } }),
       db.task.findMany({ where: { status: "IN_PROGRESS" }, include: { project: true } }),
       db.task.findMany({ where: { status: "BLOCKED" }, include: { project: true } }),
       db.risk.findMany({ where: { status: { in: ["MONITORING", "ESCALATED"] } } }),
-      db.decision.findMany({ where: { date: { gte: since } } }),
     ]);
     const context = [
       `Shipped this week: ${shipped.map((t) => `${t.title} (${t.project?.name ?? "personal"})`).join("; ") || "none"}`,
       `In progress: ${inProgress.map((t) => `${t.title} (${t.project?.name ?? "personal"})`).join("; ") || "none"}`,
       `Blocked: ${blocked.map((t) => `${t.title} (${t.project?.name ?? "personal"})`).join("; ") || "none"}`,
       `Open risks: ${risks.map((r) => r.risk).join("; ") || "none"}`,
-      `Decisions made this week: ${decisions.map((d) => d.decision).join("; ") || "none"}`,
     ].join("\n");
     return draftWeeklyUpdate(context);
   });

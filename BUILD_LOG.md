@@ -1,4 +1,6 @@
-# PMOS Build Log
+# WTS Build Log
+
+_Renamed from PMOS to WTS ("What the Shizzz") for real-world team use. Entries below from before the rename may still say PMOS in places — same app._
 
 Read this first if context has reset. Read [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)
 too — it's locked and every UI decision should check against it, not against

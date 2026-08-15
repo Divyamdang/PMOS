@@ -64,7 +64,7 @@ export function NewProjectDialog({ open, onOpenChange }: { open: boolean; onOpen
       <DialogContent>
         <DialogHeader>
           <DialogTitle>New project</DialogTitle>
-          <DialogDescription>Give it a name — PMOS will track routing, tasks, risks, and decisions under it.</DialogDescription>
+          <DialogDescription>Give it a name — WTS will track routing, tasks, and risks under it.</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-[1fr_auto] gap-3">

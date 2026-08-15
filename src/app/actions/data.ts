@@ -10,8 +10,8 @@ const BACKUP_DIR = path.join(process.cwd(), "prisma", "backups");
 export async function exportAllDataJson() {
   const [
     users, projects, initiatives, workstreams, tasks, people, vendors,
-    followUps, waitingFor, meetings, decisions, risks, releases, documents,
-    metrics, incidents,
+    followUps, waitingFor, meetings, risks, releases, documents,
+    incidents,
   ] = await Promise.all([
     db.user.findMany(),
     db.project.findMany(),
@@ -23,11 +23,9 @@ export async function exportAllDataJson() {
     db.followUp.findMany(),
     db.waitingForItem.findMany(),
     db.meeting.findMany({ include: { participants: true, actionItems: true } }),
-    db.decision.findMany(),
     db.risk.findMany(),
     db.release.findMany({ include: { projects: true } }),
     db.document.findMany(),
-    db.metric.findMany(),
     db.incident.findMany(),
   ]);
 
@@ -35,8 +33,8 @@ export async function exportAllDataJson() {
     {
       exportedAt: new Date().toISOString(),
       users, projects, initiatives, workstreams, tasks, people, vendors,
-      followUps, waitingFor, meetings, decisions, risks, releases, documents,
-      metrics, incidents,
+      followUps, waitingFor, meetings, risks, releases, documents,
+      incidents,
     },
     null,
     2
@@ -62,7 +60,7 @@ function csvEscape(value: string) {
 export async function createBackup() {
   await fs.mkdir(BACKUP_DIR, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const dest = path.join(BACKUP_DIR, `pmos-backup-${stamp}.db`);
+  const dest = path.join(BACKUP_DIR, `wts-backup-${stamp}.db`);
   await fs.copyFile(DB_PATH, dest);
   return { fileName: path.basename(dest), createdAt: stamp };
 }

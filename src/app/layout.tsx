@@ -24,8 +24,8 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PMOS",
-  description: "A fintech PM's personal operating system.",
+  title: "WTS",
+  description: "WTS (What the Shizzz) — a product operating system for fintech teams.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

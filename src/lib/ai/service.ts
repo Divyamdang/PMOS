@@ -33,7 +33,7 @@ export type TaskDraft = {
 
 export async function draftTaskFromText(text: string, projectKeys: string[]): Promise<TaskDraft> {
   return completeJSON<TaskDraft>(
-    `You turn a PM's raw note into a structured task for PMOS, a fintech PM's tracker.
+    `You turn a raw note into a structured task for WTS, a fintech product team's tracker.
 Valid task types: TASK, FEATURE, BUG, IMPROVEMENT, TECH_DEBT, RESEARCH, ANALYTICS, FOLLOW_UP, MEETING, CALL, COMMUNICATION, REMINDER, VENDOR, INCIDENT, DECISION, DOCUMENTATION, IDEA.
 Valid project keys: ${projectKeys.join(", ") || "(none yet)"}.
 Respond with strict JSON: {"title": string, "type": string, "priority": "P0"|"P1"|"P2"|"P3", "description": string, "acceptanceCriteria": string, "subtasks": string[], "suggestedProjectKey": string|null}.
@@ -77,7 +77,7 @@ Respond with strict JSON: {"summary": string}.`,
 
 export async function draftWeeklyUpdate(context: string): Promise<string> {
   const result = await completeJSON<{ update: string }>(
-    `Write a weekly PM stakeholder update from this data. Structure with these exact section headers, each followed by a short bulleted list (use "- " bullets): "Shipped", "In progress", "Blocked", "Risks", "Next week", "Key decisions". Skip a section entirely if there's nothing for it. Plain text, no markdown bold/headers beyond the section title lines themselves. Keep it copy-pasteable into an email or Slack message.
+    `Write a weekly PM stakeholder update from this data. Structure with these exact section headers, each followed by a short bulleted list (use "- " bullets): "Shipped", "In progress", "Blocked", "Risks", "Next week". Skip a section entirely if there's nothing for it. Plain text, no markdown bold/headers beyond the section title lines themselves. Keep it copy-pasteable into an email or Slack message.
 Respond with strict JSON: {"update": string}.`,
     context
   );

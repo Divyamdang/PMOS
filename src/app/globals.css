@@ -4,9 +4,20 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ---------------------------------------------------------------------
-   PMOS design tokens — see DESIGN_SYSTEM.md. Six named accents, everything
+   WTS design tokens — see DESIGN_SYSTEM.md. Six named accents, everything
    else (surfaces, muted text, borders) derived from Graphite/Bone.
    --------------------------------------------------------------------- */
+
+/* Scrolling stays functional everywhere; the scrollbar track/thumb itself
+   is just never drawn. Applied globally rather than per-container so no
+   future scrollable panel needs to remember to opt in. */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* old Edge/IE */
+}
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, new Edge */
+}
 
 :root {
   --font-display: var(--font-fraunces);

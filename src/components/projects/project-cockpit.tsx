@@ -21,9 +21,8 @@ import type { ProjectCockpitData } from "@/lib/queries/project";
 import type { Health, TaskStatus } from "@/generated/prisma";
 import { NewTaskDialog } from "@/components/tasks/new-task-dialog";
 import { NewRiskDialog } from "@/components/risks/new-risk-dialog";
-import { NewDecisionDialog } from "@/components/decisions/new-decision-dialog";
 import { AISummaryCard } from "@/components/projects/ai-summary-card";
-import { ShieldAlert, GitBranch, Sparkles } from "lucide-react";
+import { ShieldAlert, Sparkles } from "lucide-react";
 
 export function ProjectCockpit({ data }: { data: ProjectCockpitData }) {
   const { project } = data;
@@ -31,7 +30,6 @@ export function ProjectCockpit({ data }: { data: ProjectCockpitData }) {
   const [suggestion, setSuggestion] = React.useState<{ health: Health; reason: string } | null>(null);
   const [taskDialogOpen, setTaskDialogOpen] = React.useState(false);
   const [riskDialogOpen, setRiskDialogOpen] = React.useState(false);
-  const [decisionDialogOpen, setDecisionDialogOpen] = React.useState(false);
 
   React.useEffect(() => {
     computeHealthSuggestion(project.id).then((s) => {
@@ -117,7 +115,6 @@ export function ProjectCockpit({ data }: { data: ProjectCockpitData }) {
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="risks">Risks{data.risks.length > 0 && ` (${data.risks.length})`}</TabsTrigger>
-          <TabsTrigger value="decisions">Decisions</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
@@ -182,25 +179,6 @@ export function ProjectCockpit({ data }: { data: ProjectCockpitData }) {
           )}
         </TabsContent>
 
-        <TabsContent value="decisions" className="flex flex-col gap-2 pt-4">
-          <div className="mb-1 flex justify-end">
-            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setDecisionDialogOpen(true)}>
-              <Plus className="h-3.5 w-3.5" /> New decision
-            </Button>
-          </div>
-          {data.decisions.length === 0 ? (
-            <EmptyState icon={GitBranch} title="No decisions recorded." description="Capture the calls you make so future-you remembers why." action={{ label: "Record a decision", onClick: () => setDecisionDialogOpen(true) }} />
-          ) : (
-            data.decisions.map((d) => (
-              <div key={d.id} className="rounded-lg border p-3 text-sm" style={{ borderColor: "var(--border-subtle)", background: "var(--card)" }}>
-                <p className="font-medium">{d.decision}</p>
-                {d.reason && <p className="mt-1 text-xs" style={{ color: "var(--muted-2)" }}>{d.reason}</p>}
-                <p className="mt-1.5 text-[11px]" style={{ color: "var(--muted-2)" }}>{formatDate(d.date, "MMM d, yyyy")} · {d.owner?.name}</p>
-              </div>
-            ))
-          )}
-        </TabsContent>
-
         <TabsContent value="documents" className="flex flex-col gap-2 pt-4">
           {data.documents.length === 0 ? (
             <EmptyState title="No documents yet." description="PRDs, notes, and requirements for this project will show up here." />
@@ -220,7 +198,7 @@ export function ProjectCockpit({ data }: { data: ProjectCockpitData }) {
           ) : (
             data.activity.map((e) => (
               <p key={e.id} className="text-xs" style={{ color: "var(--muted-2)" }}>
-                <span style={{ color: "var(--foreground)" }}>{e.actor?.name ?? "PMOS"}</span> {e.message} · {timeAgo(e.createdAt)}
+                <span style={{ color: "var(--foreground)" }}>{e.actor?.name ?? "WTS"}</span> {e.message} · {timeAgo(e.createdAt)}
               </p>
             ))
           )}
@@ -229,7 +207,6 @@ export function ProjectCockpit({ data }: { data: ProjectCockpitData }) {
 
       <NewTaskDialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen} defaultProjectId={project.id} />
       <NewRiskDialog open={riskDialogOpen} onOpenChange={setRiskDialogOpen} defaultProjectId={project.id} />
-      <NewDecisionDialog open={decisionDialogOpen} onOpenChange={setDecisionDialogOpen} defaultProjectId={project.id} />
     </div>
   );
 }

@@ -13,10 +13,9 @@ export async function getProjectByKey(key: string) {
   });
   if (!project) return null;
 
-  const [tasks, risks, decisions, meetings, documents, waitingFor, followUps, activity, allTasksCount, doneTasksCount] = await Promise.all([
+  const [tasks, risks, meetings, documents, waitingFor, followUps, activity, allTasksCount, doneTasksCount] = await Promise.all([
     db.task.findMany({ where: { projectId: project.id }, include: { assignee: true, subtasks: true }, orderBy: [{ priority: "asc" }, { createdAt: "asc" }] }),
     db.risk.findMany({ where: { projectId: project.id }, include: { owner: true }, orderBy: { createdAt: "desc" } }),
-    db.decision.findMany({ where: { relatedProjectId: project.id }, include: { owner: true }, orderBy: { date: "desc" } }),
     db.meeting.findMany({ where: { projectId: project.id }, include: { participants: { include: { person: true } }, actionItems: true }, orderBy: { date: "desc" } }),
     db.document.findMany({ where: { projectId: project.id }, orderBy: { updatedAt: "desc" } }),
     db.waitingForItem.findMany({ where: { projectId: project.id, status: { in: ["WAITING", "FOLLOW_UP_DUE"] } }, include: { person: true, vendor: true } }),
@@ -41,7 +40,6 @@ export async function getProjectByKey(key: string) {
     projectWork,
     pmWork,
     risks,
-    decisions,
     meetings,
     documents,
     waitingFor,

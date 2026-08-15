@@ -13,7 +13,7 @@ function useSectionTitle() {
   const pathname = usePathname();
   const all = NAV_GROUPS.flatMap((g) => g.items).concat(SETTINGS_ITEM);
   const match = all.find((item) => pathname === item.href || pathname?.startsWith(item.href + "/"));
-  return match?.label ?? "PMOS";
+  return match?.label ?? "WTS";
 }
 
 export function TopBar() {

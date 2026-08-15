@@ -1,4 +1,4 @@
-# PMOS Design System
+# WTS Design System
 
 Locked before any component code, per the design directive. Every future
 session/subagent touching UI reads this file first — check it in explicitly,
@@ -6,11 +6,13 @@ don't re-derive "what looks reasonable" from scratch.
 
 ## Grounding (Section 3)
 
-**Subject:** a fintech PM's personal command center, where the real content
+**Subject:** a fintech product team's command center, where the real content
 is routing, settlement, and approval flows moving through states — not
 generic tickets in a generic tracker.
-**Audience:** one person (the PM), opening this every morning before anything
-else.
+**Audience:** a small product team (PM plus the people they work with day to
+day), opening this every morning before anything else. Personal views (My
+Day, My Work, Inbox) stay scoped to whoever's signed in; everything else
+(Projects, Tasks, People, Vendors) is shared across the team.
 **Dashboard's single job:** answer "what needs me right now," calmly — not a
 trading-floor wall, not an alarm panel.
 
@@ -182,7 +184,7 @@ Salesforce, but it's contained to exactly one screen (per spec's own
 allowance) rather than the navigation pattern for the whole app. Health/
 status render as colored dropdown chips + a compact Routing Line progress
 bar, not Jira-style badges. The "System suggests: At risk — reason. Apply?"
-nudge is a PMOS-specific touch no generic tracker has. Boldness stays
+nudge is a WTS-specific touch no generic tracker has. Boldness stays
 subdued here (thin compact Routing Line, not the full hero) — correct,
 since the Dashboard already spent that budget.
 
@@ -212,7 +214,7 @@ distinctive touch.
 Raycast/Linear pattern well rather than reinvent it — cmdk styled with our
 tokens (Route accent, Plex Mono shortcut hints). The "Ask AI: '<query>'"
 entry and the "Show me" quick-filters (Overdue/Blocked/Waiting/Due today)
-are PMOS-specific additions on top of the standard pattern, not a generic
+are WTS-specific additions on top of the standard pattern, not a generic
 Raycast clone.
 
 **Overall:** the palette stays roughly 90/10 neutral-to-accent across every

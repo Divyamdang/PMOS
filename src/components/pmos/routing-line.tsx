@@ -19,7 +19,7 @@ type RoutingLineHeroProps = {
 };
 
 /**
- * The Routing Line — PMOS's signature element (see DESIGN_SYSTEM.md).
+ * The Routing Line — WTS's signature element (see DESIGN_SYSTEM.md).
  * Renders today's work as nodes traveling along a stage line instead of a
  * generic stat-card row.
  */

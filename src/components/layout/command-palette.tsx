@@ -67,7 +67,7 @@ export function CommandPalette() {
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen} title="Command Palette" description="Jump anywhere or create something new">
-      <CommandInput placeholder="Search PMOS, or type a command…" value={query} onValueChange={setQuery} />
+      <CommandInput placeholder="Search WTS, or type a command…" value={query} onValueChange={setQuery} />
       <CommandList>
         <CommandEmpty>No results. Try &quot;task&quot;, &quot;project&quot;, or a person&apos;s name.</CommandEmpty>
 
@@ -130,16 +130,11 @@ export function CommandPalette() {
                 ))}
               </CommandGroup>
             )}
-            {(results.meetings.length > 0 || results.decisions.length > 0 || results.risks.length > 0) && (
+            {(results.meetings.length > 0 || results.risks.length > 0) && (
               <CommandGroup heading="More">
                 {results.meetings.map((m) => (
                   <CommandItem key={m.id} onSelect={() => go("/meetings")}>
                     {m.title} <CommandShortcut>Meeting</CommandShortcut>
-                  </CommandItem>
-                ))}
-                {results.decisions.map((d) => (
-                  <CommandItem key={d.id} onSelect={() => go("/decisions")}>
-                    {d.decision} <CommandShortcut>Decision</CommandShortcut>
                   </CommandItem>
                 ))}
                 {results.risks.map((r) => (
@@ -169,9 +164,6 @@ export function CommandPalette() {
           </CommandItem>
           <CommandItem onSelect={() => go("/risks?new=1")}>
             <Plus /> New risk
-          </CommandItem>
-          <CommandItem onSelect={() => go("/decisions?new=1")}>
-            <Plus /> New decision
           </CommandItem>
           <CommandItem onSelect={() => go("/inbox?capture=1")}>
             <Sparkles /> Quick capture
