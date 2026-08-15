@@ -66,6 +66,7 @@ export function ProjectsView({ projects, openNewOnLoad }: { projects: ProjectWit
         />
       ) : view === "board" ? (
         <KanbanBoard
+          id="projects-board"
           columns={PROJECT_KANBAN_COLUMNS.map((s) => ({ id: s, label: PROJECT_STATUS_META[s].label, color: PROJECT_STATUS_META[s].color }))}
           items={filtered}
           getStatus={(p) => p.status}

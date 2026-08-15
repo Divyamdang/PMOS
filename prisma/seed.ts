@@ -88,7 +88,7 @@ async function main() {
   // ---------------------------------------------------------------------
   // PGR tasks — the flagship demo project
   // ---------------------------------------------------------------------
-  let seq = 1;
+  let seq = 0;
   const key = () => `PGR-${100 + seq++}`;
 
   const defineRules = await db.task.create({ data: { taskKey: key(), title: "Define routing rules", type: "TASK", status: "DONE", priority: "P1", projectId: pgr.id, assigneeId: rahul.id, reporterId: divyam.id, completedAt: daysAgo(20) } });

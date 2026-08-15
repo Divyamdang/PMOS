@@ -97,6 +97,7 @@ export function TasksView({
         <EmptyState icon={ListChecks} title="Nothing here." description="Try a different filter, or create a new task." action={{ label: "New task", onClick: () => setNewOpen(true) }} />
       ) : view === "board" ? (
         <KanbanBoard
+          id="tasks-board"
           columns={TASK_KANBAN_COLUMNS.map((s) => ({ id: s, label: TASK_STATUS_META[s].label, color: TASK_STATUS_META[s].color }))}
           items={sorted}
           getStatus={(t) => t.status}

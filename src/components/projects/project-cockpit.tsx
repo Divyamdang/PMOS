@@ -135,6 +135,7 @@ export function ProjectCockpit({ data }: { data: ProjectCockpitData }) {
             <EmptyState title="No tasks yet." description="Break this project down into tasks to see them here." action={{ label: "New task", onClick: () => setTaskDialogOpen(true) }} />
           ) : (
             <KanbanBoard
+              id={`project-board-${project.key}`}
               columns={TASK_KANBAN_COLUMNS.map((s) => ({ id: s, label: TASK_STATUS_META[s].label, color: TASK_STATUS_META[s].color }))}
               items={data.projectWork.filter((t) => !t.parentTaskId)}
               getStatus={(t) => t.status}

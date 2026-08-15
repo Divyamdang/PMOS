@@ -157,6 +157,12 @@ enum TaskStatus {
   DONE
 }
 
+enum PlanBucket {
+  MUST_DO
+  SHOULD_DO
+  IF_TIME
+}
+
 enum DependencyType {
   BLOCKS
   BLOCKED_BY
@@ -189,6 +195,9 @@ model Task {
   estimate     Float?
   labels       String?    // comma-separated
   isPersonal   Boolean    @default(false) // PM's own operational work vs project work
+  planBucket   PlanBucket?
+  planDate     DateTime?
+  planOrder    Int        @default(0)
 
   // fintech-specific, optional/conditional fields
   paymentGateway String?

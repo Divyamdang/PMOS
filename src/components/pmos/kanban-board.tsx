@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 export type KanbanColumn<S extends string> = { id: S; label: string; color?: string };
 
 export function KanbanBoard<T extends { id: string }, S extends string>({
+  id,
   columns,
   items,
   getStatus,
@@ -24,6 +25,11 @@ export function KanbanBoard<T extends { id: string }, S extends string>({
   onMove,
   emptyLabel = "Nothing here yet.",
 }: {
+  /** Stable, unique-per-instance id — required so dnd-kit's internally
+   * generated aria ids match between server and client render (otherwise
+   * mounting more than one board across navigations causes a hydration
+   * mismatch, since dnd-kit's id counter isn't SSR-deterministic). */
+  id: string;
   columns: KanbanColumn<S>[];
   items: T[];
   getStatus: (item: T) => S;
@@ -65,7 +71,7 @@ export function KanbanBoard<T extends { id: string }, S extends string>({
   const activeItem = localItems.find((i) => i.id === activeId);
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext id={id} sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex gap-4 overflow-x-auto pb-4">
         {columns.map((col) => (
           <KanbanColumnView key={col.id} column={col} count={byColumn.get(col.id)?.length ?? 0}>
