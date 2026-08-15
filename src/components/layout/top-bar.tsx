@@ -6,6 +6,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { NAV_GROUPS, SETTINGS_ITEM } from "./nav-config";
 import { useUIStore } from "@/lib/store/ui-store";
+import { NotificationBell } from "./notification-bell";
 
 function useSectionTitle() {
   const pathname = usePathname();
@@ -53,6 +54,7 @@ export function TopBar() {
           <Sun className="h-4 w-4 scale-100 dark:scale-0 transition-transform" />
           <Moon className="absolute h-4 w-4 scale-0 dark:scale-100 transition-transform" />
         </Button>
+        <NotificationBell />
         <Button size="sm" className="gap-1.5" onClick={() => setQuickCaptureOpen(true)}>
           <Plus className="h-4 w-4" />
           New

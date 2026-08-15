@@ -91,7 +91,7 @@ async function main() {
   let seq = 0;
   const key = () => `PGR-${100 + seq++}`;
 
-  const defineRules = await db.task.create({ data: { taskKey: key(), title: "Define routing rules", type: "TASK", status: "DONE", priority: "P1", projectId: pgr.id, assigneeId: rahul.id, reporterId: divyam.id, completedAt: daysAgo(20) } });
+  const defineRules = await db.task.create({ data: { taskKey: key(), title: "Define routing rules", type: "TASK", status: "DONE", priority: "P1", projectId: pgr.id, assigneeId: rahul.id, reporterId: divyam.id, createdAt: daysAgo(25), completedAt: daysAgo(20) } });
   const integrate = await db.task.create({ data: { taskKey: key(), title: "Integrate Cashfree", description: "End-to-end integration of Cashfree as a routable gateway.", type: "FEATURE", status: "IN_PROGRESS", priority: "P0", projectId: pgr.id, assigneeId: rahul.id, reporterId: divyam.id, vendorId: cashfree.id, dueDate: daysFromNow(5), paymentGateway: "Cashfree" } });
   const fallback = await db.task.create({ data: { taskKey: key(), title: "Configure fallback logic", type: "TASK", status: "TODO", priority: "P1", projectId: pgr.id, assigneeId: rahul.id, reporterId: divyam.id, dueDate: daysFromNow(10) } });
   const engine = await db.task.create({ data: { taskKey: key(), title: "Build routing engine", type: "FEATURE", status: "IN_PROGRESS", priority: "P0", projectId: pgr.id, assigneeId: rahul.id, reporterId: divyam.id, dueDate: daysFromNow(8) } });
@@ -119,6 +119,7 @@ async function main() {
         parentTaskId: integrate.id,
         assigneeId: rahul.id,
         reporterId: divyam.id,
+        createdAt: status === "DONE" ? daysAgo(6) : undefined,
         completedAt: status === "DONE" ? daysAgo(3) : null,
       },
     });
@@ -229,6 +230,7 @@ async function main() {
           assigneeId: [rahul, neha, arjun][n % 3].id,
           reporterId: divyam.id,
           dueDate: daysFromNow(n * 3),
+          createdAt: p.status === "COMPLETED" ? daysAgo(15) : undefined,
           completedAt: p.status === "COMPLETED" ? daysAgo(10) : null,
         },
       });

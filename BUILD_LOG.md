@@ -189,13 +189,71 @@ around by resizing the viewport tall instead of scrolling — worth knowing
 if a future session hits the same thing, so it doesn't get mistaken for an
 app-side infinite-loop or hang.
 
+## Phase 5 — Productivity ✅
+
+- **Calendar** (`/calendar`): month grid (date-fns), tasks/follow-ups/
+  meetings plotted by date as colored dots, click a day to see its agenda,
+  click an item to open the right thing (task → drawer, follow-up/meeting →
+  their list page). Month navigation via `?month=` query param.
+- **Analytics** (`/analytics`): personal stats (created/completed,
+  completion rate, overdue rate, avg cycle time, follow-ups closed, all
+  last-30-days) + a per-project table (progress, blocked count, risk
+  count) linking into each Cockpit.
+- **Notification Center**: a bell in the TopBar showing live-computed
+  alerts (overdue, blocked, follow-ups due, meetings starting within 2h,
+  risks due) grouped in a popover. Deliberately *not* a persisted
+  notification log — it's recomputed on open from current state, so it's
+  non-spammy by construction (spec explicitly asked to "keep it
+  non-spammy") and can never accumulate stale entries.
+- **Global search**: the command palette's search box now does real
+  cross-entity search (tasks/projects/people/vendors/documents/meetings/
+  decisions/risks) via a new `searchEverything` action, debounced 150ms,
+  shown as grouped results above the static Create/Show-me/Go-to sections.
+- **Settings** (`/settings`): General (name, theme, working hours),
+  Workspace (live entity counts), AI (key-configured status, read from
+  `OPENAI_API_KEY`), Data (export JSON/CSV, create/list/restore local
+  SQLite backups under `prisma/backups/`, gitignored).
+- Keyboard shortcuts and command palette itself already existed from Phase
+  1; the Project Cockpit's Timeline tab already covered per-project
+  timeline from Phase 2 — nothing new needed there.
+
+**Two real bugs found and fixed while testing this phase:**
+
+1. **Hydration mismatch on `/settings`.** The theme-selector buttons read
+   `useTheme()`'s `theme` value to decide which button looks "active", but
+   `next-themes` only knows the real theme after mount (it reads
+   `localStorage` client-side) — so the server-rendered button variants
+   didn't match the client's. Fixed with the standard next-themes pattern:
+   a `mounted` guard state that delays theme-dependent styling until after
+   the first client render.
+2. **Negative "avg cycle time" in Analytics.** The seed script set
+   `completedAt` in the past (e.g. `daysAgo(3)`) while leaving `createdAt`
+   at its default (`now()`, i.e. seed-run time) — so `completedAt <
+   createdAt` for every "done" seeded task, and cycle time
+   (`completedAt - createdAt`) came out negative. Fixed by also
+   backdating `createdAt` on those same rows so completion always comes
+   after creation, the way it would for real data.
+
+**Operational note, not a bug in the app itself:** running
+`prisma migrate reset` while the Next.js dev server still held its Prisma
+connection open to the old `dev.db` file corrupted the SQLite file
+in-place (`database disk image is malformed`) until the dev server was
+restarted — the file itself was fine (`PRAGMA integrity_check` → `ok`
+after restart), it was just a stale connection. If a future session needs
+to reset the dev database, restart the dev server immediately after.
+Also: `prisma migrate reset`/`db:reset` is a destructive action Prisma's
+CLI itself refuses to run for an AI agent without explicit per-invocation
+user consent (via `PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION`) — asked
+the user before running it here; do the same next time rather than trying
+to work around the guard.
+
 ## Not started yet
 
-Phase 5 (Calendar, Timeline view, Analytics, Backup/restore/import/export —
-command palette and keyboard shortcuts already exist from Phase 1), Phase 6
-(AI layer), Phase 7 (polish/QA/acceptance test).
+Phase 6 (AI layer), Phase 7 (polish/QA/acceptance test).
 
-Nav links to `/calendar`, `/analytics`, `/settings` currently 404 —
-building these is Phase 5. Workstreams have no dedicated UI yet (the
-`Workstream` model and `createWorkstream` action exist; nothing surfaces
-them — low priority, Task creation doesn't require one).
+`/settings` Notifications sub-tab from the original spec wasn't built as a
+separate settings surface — the Notification Center itself (bell +
+popover) covers the functional need; there's no per-category on/off
+toggling yet. Workstreams have no dedicated UI (the `Workstream` model and
+`createWorkstream` action exist; nothing surfaces them — low priority,
+task creation doesn't require one).
