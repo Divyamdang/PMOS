@@ -24,7 +24,6 @@ type RoutingLineHeroProps = {
  * generic stat-card row.
  */
 export function RoutingLine({ stages, nodes, className }: RoutingLineHeroProps) {
-  const stageWidth = 100 / stages.length;
   // group nodes by stage so we can stack them vertically without overlap
   const byStage = React.useMemo(() => {
     const map = new Map<number, RoutingNode[]>();

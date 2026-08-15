@@ -5,15 +5,12 @@ import { usePathname } from "next/navigation";
 import { NAV_GROUPS, SETTINGS_ITEM } from "./nav-config";
 import { cn } from "@/lib/utils";
 
-export function Sidebar() {
+export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
-    <aside
-      className="hidden w-60 shrink-0 flex-col border-r px-3 py-4 lg:flex"
-      style={{ borderColor: "var(--border-subtle)", background: "var(--graphite)" }}
-    >
-      <Link href="/dashboard" className="mb-6 flex items-center gap-2 px-2">
+    <>
+      <Link href="/dashboard" onClick={onNavigate} className="mb-6 flex items-center gap-2 px-2">
         <span
           className="flex h-7 w-7 items-center justify-center rounded-md text-sm font-semibold"
           style={{ background: "var(--route)", color: "var(--primary-foreground)", fontFamily: "var(--font-mono)" }}
@@ -40,6 +37,7 @@ export function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={onNavigate}
                   className={cn(
                     "group flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors",
                     active ? "font-medium" : "hover:bg-[var(--surface-hover)]"
@@ -69,15 +67,25 @@ export function Sidebar() {
       <div className="mt-4 flex flex-col gap-0.5 border-t pt-3" style={{ borderColor: "var(--border-subtle)" }}>
         <Link
           href={SETTINGS_ITEM.href}
-          className={cn(
-            "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-[var(--surface-hover)]"
-          )}
+          onClick={onNavigate}
+          className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-[var(--surface-hover)]"
           style={{ color: pathname?.startsWith("/settings") ? "var(--route)" : "var(--foreground)" }}
         >
           <SETTINGS_ITEM.icon className="h-4 w-4" style={{ color: "var(--muted-2)" }} />
           Settings
         </Link>
       </div>
+    </>
+  );
+}
+
+export function Sidebar() {
+  return (
+    <aside
+      className="hidden w-60 shrink-0 flex-col border-r px-3 py-4 lg:flex"
+      style={{ borderColor: "var(--border-subtle)", background: "var(--graphite)" }}
+    >
+      <SidebarNav />
     </aside>
   );
 }

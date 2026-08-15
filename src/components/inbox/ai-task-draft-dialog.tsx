@@ -76,7 +76,7 @@ export function AITaskDraftDialog({
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" style={{ color: "var(--route)" }} /> AI-drafted task
           </DialogTitle>
-          <DialogDescription>Review before it's created — nothing is written until you confirm.</DialogDescription>
+          <DialogDescription>Review before it&apos;s created — nothing is written until you confirm.</DialogDescription>
         </DialogHeader>
         {loading && (
           <div className="flex items-center gap-2 py-6 text-sm" style={{ color: "var(--muted-2)" }}>

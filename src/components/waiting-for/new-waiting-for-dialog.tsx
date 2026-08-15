@@ -61,7 +61,7 @@ export function NewWaitingForDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Waiting for something?</DialogTitle>
-          <DialogDescription>Track what you're blocked on until it lands.</DialogDescription>
+          <DialogDescription>Track what you&apos;re blocked on until it lands.</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">

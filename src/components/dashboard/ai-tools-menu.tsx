@@ -58,7 +58,7 @@ function WeeklyUpdateDialog({ open, onOpenChange }: { open: boolean; onOpenChang
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" style={{ color: "var(--route)" }} /> Weekly stakeholder update
           </DialogTitle>
-          <DialogDescription>Drafted from this week's activity — edit before sending.</DialogDescription>
+          <DialogDescription>Drafted from this week&apos;s activity — edit before sending.</DialogDescription>
         </DialogHeader>
         {loading && <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--muted-2)" }} />}
         {error && <p className="text-sm" style={{ color: "var(--coral)" }}>{error}</p>}
@@ -115,12 +115,12 @@ function ForgettingDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
             ) : (
               data.items.length > 0 && (
                 <p className="text-xs" style={{ color: "var(--muted-2)" }}>
-                  AI narrative unavailable — here's the raw scan.
+                  AI narrative unavailable — here&apos;s the raw scan.
                 </p>
               )
             )}
             {data.items.length === 0 ? (
-              <p className="text-sm" style={{ color: "var(--settled)" }}>Nothing's slipping. You're on top of it.</p>
+              <p className="text-sm" style={{ color: "var(--settled)" }}>Nothing&apos;s slipping. You&apos;re on top of it.</p>
             ) : (
               <div className="flex flex-col gap-1">
                 {data.items.map((item, i) => (

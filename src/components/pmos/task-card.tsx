@@ -24,9 +24,11 @@ export function TaskCard({ task }: { task: TaskCardData }) {
   const labels = task.labels?.split(",").map((l) => l.trim()).filter(Boolean) ?? [];
 
   return (
+    // No role="button"/tabIndex here on purpose — this card only ever
+    // renders inside KanbanBoard's draggable wrapper, which already
+    // supplies those via dnd-kit's `attributes`. Duplicating them here
+    // produced two nested interactive roles for the same element.
     <Card
-      role="button"
-      tabIndex={0}
       onClick={() => openTaskDrawer(task.id)}
       onKeyDown={(e) => e.key === "Enter" && openTaskDrawer(task.id)}
       className="cursor-pointer gap-2 p-3 transition-colors hover:border-[var(--route)]"

@@ -49,7 +49,7 @@ export function NewRiskDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Log a risk</DialogTitle>
-          <DialogDescription>Name what could go wrong while it's still manageable.</DialogDescription>
+          <DialogDescription>Name what could go wrong while it&apos;s still manageable.</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { NAV_GROUPS, SETTINGS_ITEM } from "./nav-config";
 import { useUIStore } from "@/lib/store/ui-store";
 import { NotificationBell } from "./notification-bell";
+import { MobileNav } from "./mobile-nav";
 
 function useSectionTitle() {
   const pathname = usePathname();
@@ -26,9 +27,12 @@ export function TopBar() {
       className="flex h-14 shrink-0 items-center justify-between border-b px-4 sm:px-6"
       style={{ borderColor: "var(--border-subtle)" }}
     >
-      <h1 className="text-sm font-medium" style={{ color: "var(--muted-2)" }}>
-        {title}
-      </h1>
+      <div className="flex items-center gap-1">
+        <MobileNav />
+        <h1 className="text-sm font-medium" style={{ color: "var(--muted-2)" }}>
+          {title}
+        </h1>
+      </div>
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
@@ -42,7 +46,7 @@ export function TopBar() {
             ⌘K
           </kbd>
         </Button>
-        <Button variant="ghost" size="icon" onClick={() => setCommandPaletteOpen(true)} className="sm:hidden">
+        <Button variant="ghost" size="icon" aria-label="Search" onClick={() => setCommandPaletteOpen(true)} className="sm:hidden">
           <Search className="h-4 w-4" />
         </Button>
         <Button

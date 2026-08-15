@@ -37,7 +37,7 @@ export function WaitingForView({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm" style={{ color: "var(--muted-2)" }}>What you're blocked on, until it lands.</p>
+        <p className="text-sm" style={{ color: "var(--muted-2)" }}>What you&apos;re blocked on, until it lands.</p>
         <Button size="sm" className="gap-1.5" onClick={() => setNewOpen(true)}>
           <Plus className="h-4 w-4" /> New
         </Button>

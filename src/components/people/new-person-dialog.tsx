@@ -37,7 +37,7 @@ export function NewPersonDialog({ open, onOpenChange }: { open: boolean; onOpenC
       <DialogContent>
         <DialogHeader>
           <DialogTitle>New person</DialogTitle>
-          <DialogDescription>Someone you'll be working with.</DialogDescription>
+          <DialogDescription>Someone you&apos;ll be working with.</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">

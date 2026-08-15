@@ -34,7 +34,7 @@ export function QuickCapture() {
             Quick capture
           </DialogTitle>
           <DialogDescription>
-            Drop a raw thought — "Ask Rahul about UAT". Sort it into something real later from your Inbox.
+            Drop a raw thought — &quot;Ask Rahul about UAT&quot;. Sort it into something real later from your Inbox.
           </DialogDescription>
         </DialogHeader>
         <Textarea

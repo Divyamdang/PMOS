@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { useTheme } from "next-themes";
 import { updateSettings } from "@/app/actions/settings";
 import { exportAllDataJson, exportTasksCsv, createBackup, restoreBackup } from "@/app/actions/data";
@@ -43,7 +42,7 @@ export function SettingsView({
         </TabsContent>
 
         <TabsContent value="workspace" className="flex flex-col gap-3 pt-5">
-          <p className="text-sm" style={{ color: "var(--muted-2)" }}>What's in your workspace right now.</p>
+          <p className="text-sm" style={{ color: "var(--muted-2)" }}>What&apos;s in your workspace right now.</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {Object.entries(counts).map(([k, v]) => (
               <div key={k} className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--card)" }}>

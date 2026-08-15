@@ -94,7 +94,7 @@ function NewMetricDialog({ open, onOpenChange, projects }: { open: boolean; onOp
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Log a metric</DialogTitle>
-          <DialogDescription>Payment success rate, MDR, volume — whatever you're tracking.</DialogDescription>
+          <DialogDescription>Payment success rate, MDR, volume — whatever you&apos;re tracking.</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">

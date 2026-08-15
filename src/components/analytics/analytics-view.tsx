@@ -3,7 +3,7 @@ import { RoutingLineCompact } from "@/components/pmos/routing-line";
 import { HEALTH_META } from "@/lib/domain";
 import type { AnalyticsData } from "@/lib/queries/analytics";
 
-export function AnalyticsView({ createdCount, completedCount, completionRate, overdueRate, avgCycleTime, blockedCount, followUpsCompleted, projectStats }: AnalyticsData) {
+export function AnalyticsView({ createdCount, completedCount, completionRate, overdueRate, avgCycleTime, followUpsCompleted, projectStats }: AnalyticsData) {
   return (
     <div className="flex flex-col gap-8">
       <div>

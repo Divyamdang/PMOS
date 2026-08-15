@@ -69,14 +69,14 @@ export function CommandPalette() {
     <CommandDialog open={open} onOpenChange={setOpen} title="Command Palette" description="Jump anywhere or create something new">
       <CommandInput placeholder="Search PMOS, or type a command…" value={query} onValueChange={setQuery} />
       <CommandList>
-        <CommandEmpty>No results. Try "task", "project", or a person's name.</CommandEmpty>
+        <CommandEmpty>No results. Try &quot;task&quot;, &quot;project&quot;, or a person&apos;s name.</CommandEmpty>
 
         {query.trim().length >= 3 && (
           <>
             <CommandGroup heading="Ask AI">
               <CommandItem onSelect={askAI}>
                 <Sparkles style={{ color: "var(--route)" }} />
-                Ask AI: "{query.trim()}"
+                Ask AI: &quot;{query.trim()}&quot;
               </CommandItem>
             </CommandGroup>
             <CommandSeparator />

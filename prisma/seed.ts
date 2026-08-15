@@ -28,7 +28,7 @@ async function main() {
     create: { name: "Divyam Dang", email: "divyamdang02@gmail.com", role: "Product Manager" },
   });
 
-  const [rahul, priya, aman, neha, arjun] = await Promise.all([
+  const [rahul, , aman, neha, arjun] = await Promise.all([
     db.user.upsert({ where: { email: "rahul@pmos.local" }, update: {}, create: { name: "Rahul Mehta", email: "rahul@pmos.local", role: "Engineering Lead" } }),
     db.user.upsert({ where: { email: "priya@pmos.local" }, update: {}, create: { name: "Priya Nair", email: "priya@pmos.local", role: "Finance" } }),
     db.user.upsert({ where: { email: "aman@pmos.local" }, update: {}, create: { name: "Aman Sharma", email: "aman@pmos.local", role: "QA Lead" } }),
@@ -45,7 +45,7 @@ async function main() {
   ]);
   const [pRahul, pPriya] = people;
 
-  const [cashfree, razorpay, juspay, hdfc, amex] = await Promise.all([
+  const [cashfree, razorpay, , hdfc] = await Promise.all([
     db.vendor.create({ data: { name: "Cashfree", category: "Payment Gateway", website: "https://cashfree.com", primaryContact: "Vendor Success Team", email: "support@cashfree.com", status: "ACTIVE", notes: "Primary PG for dynamic routing pilot." } }),
     db.vendor.create({ data: { name: "Razorpay", category: "Payment Gateway", website: "https://razorpay.com", primaryContact: "Partnerships", status: "ACTIVE" } }),
     db.vendor.create({ data: { name: "Juspay", category: "Orchestration", website: "https://juspay.in", primaryContact: "Solutions Engineering", status: "EVALUATING" } }),
@@ -91,11 +91,11 @@ async function main() {
   let seq = 0;
   const key = () => `PGR-${100 + seq++}`;
 
-  const defineRules = await db.task.create({ data: { taskKey: key(), title: "Define routing rules", type: "TASK", status: "DONE", priority: "P1", projectId: pgr.id, assigneeId: rahul.id, reporterId: divyam.id, createdAt: daysAgo(25), completedAt: daysAgo(20) } });
+  await db.task.create({ data: { taskKey: key(), title: "Define routing rules", type: "TASK", status: "DONE", priority: "P1", projectId: pgr.id, assigneeId: rahul.id, reporterId: divyam.id, createdAt: daysAgo(25), completedAt: daysAgo(20) } });
   const integrate = await db.task.create({ data: { taskKey: key(), title: "Integrate Cashfree", description: "End-to-end integration of Cashfree as a routable gateway.", type: "FEATURE", status: "IN_PROGRESS", priority: "P0", projectId: pgr.id, assigneeId: rahul.id, reporterId: divyam.id, vendorId: cashfree.id, dueDate: daysFromNow(5), paymentGateway: "Cashfree" } });
-  const fallback = await db.task.create({ data: { taskKey: key(), title: "Configure fallback logic", type: "TASK", status: "TODO", priority: "P1", projectId: pgr.id, assigneeId: rahul.id, reporterId: divyam.id, dueDate: daysFromNow(10) } });
-  const engine = await db.task.create({ data: { taskKey: key(), title: "Build routing engine", type: "FEATURE", status: "IN_PROGRESS", priority: "P0", projectId: pgr.id, assigneeId: rahul.id, reporterId: divyam.id, dueDate: daysFromNow(8) } });
-  const monitoring = await db.task.create({ data: { taskKey: key(), title: "Add monitoring", type: "TASK", status: "TODO", priority: "P2", projectId: pgr.id, assigneeId: aman.id, reporterId: divyam.id, dueDate: daysFromNow(14) } });
+  await db.task.create({ data: { taskKey: key(), title: "Configure fallback logic", type: "TASK", status: "TODO", priority: "P1", projectId: pgr.id, assigneeId: rahul.id, reporterId: divyam.id, dueDate: daysFromNow(10) } });
+  await db.task.create({ data: { taskKey: key(), title: "Build routing engine", type: "FEATURE", status: "IN_PROGRESS", priority: "P0", projectId: pgr.id, assigneeId: rahul.id, reporterId: divyam.id, dueDate: daysFromNow(8) } });
+  await db.task.create({ data: { taskKey: key(), title: "Add monitoring", type: "TASK", status: "TODO", priority: "P2", projectId: pgr.id, assigneeId: aman.id, reporterId: divyam.id, dueDate: daysFromNow(14) } });
   const uat = await db.task.create({ data: { taskKey: key(), title: "UAT", type: "TASK", status: "BACKLOG", priority: "P1", projectId: pgr.id, assigneeId: aman.id, reporterId: divyam.id, dueDate: daysFromNow(18) } });
   const prod = await db.task.create({ data: { taskKey: key(), title: "Production deployment", type: "TASK", status: "BACKLOG", priority: "P0", projectId: pgr.id, assigneeId: rahul.id, reporterId: divyam.id, dueDate: daysFromNow(21) } });
 

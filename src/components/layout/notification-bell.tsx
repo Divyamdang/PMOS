@@ -41,7 +41,7 @@ export function NotificationBell() {
       <PopoverContent align="end" className="w-80 p-0">
         <div className="max-h-96 overflow-y-auto p-2">
           {!data || count === 0 ? (
-            <p className="px-3 py-6 text-center text-xs" style={{ color: "var(--muted-2)" }}>You're all caught up.</p>
+            <p className="px-3 py-6 text-center text-xs" style={{ color: "var(--muted-2)" }}>You&apos;re all caught up.</p>
           ) : (
             <>
               <Group icon={AlertTriangle} label="Overdue" color="var(--coral)" items={data.overdueTasks.map((t) => ({ id: t.id, label: `${t.taskKey} ${t.title}`, onClick: () => { openTaskDrawer(t.id); setOpen(false); } }))} />

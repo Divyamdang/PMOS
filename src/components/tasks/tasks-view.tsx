@@ -91,8 +91,8 @@ export function TasksView({
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center rounded-md border p-0.5" style={{ borderColor: "var(--border-subtle)" }}>
-            <ViewButton active={view === "board"} onClick={() => setView("board")} icon={LayoutGrid} />
-            <ViewButton active={view === "list"} onClick={() => setView("list")} icon={ListIcon} />
+            <ViewButton active={view === "board"} onClick={() => setView("board")} icon={LayoutGrid} label="Board view" />
+            <ViewButton active={view === "list"} onClick={() => setView("list")} icon={ListIcon} label="List view" />
           </div>
           <Button size="sm" className="gap-1.5" onClick={() => setNewOpen(true)}>
             <Plus className="h-4 w-4" /> New task
@@ -190,10 +190,12 @@ function FilterChips({ value, onChange }: { value: Filter; onChange: (f: Filter)
   );
 }
 
-function ViewButton({ active, onClick, icon: Icon }: { active: boolean; onClick: () => void; icon: typeof LayoutGrid }) {
+function ViewButton({ active, onClick, icon: Icon, label }: { active: boolean; onClick: () => void; icon: typeof LayoutGrid; label: string }) {
   return (
     <button
       onClick={onClick}
+      aria-label={label}
+      aria-pressed={active}
       className={cn("flex h-7 w-7 items-center justify-center rounded", active && "bg-[var(--route-soft)]")}
       style={{ color: active ? "var(--route)" : "var(--muted-2)" }}
     >

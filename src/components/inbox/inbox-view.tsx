@@ -88,6 +88,7 @@ export function InboxView({
               </DropdownMenu>
               <button
                 className="shrink-0"
+                aria-label="Discard"
                 style={{ color: "var(--muted-2)" }}
                 onClick={async () => {
                   await deleteInboxItem(item.id);

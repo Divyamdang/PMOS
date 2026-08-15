@@ -39,19 +39,16 @@ export function KanbanBoard<T extends { id: string }, S extends string>({
 }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const [activeId, setActiveId] = React.useState<string | null>(null);
-  const [localItems, setLocalItems] = React.useState(items);
-
-  React.useEffect(() => setLocalItems(items), [items]);
 
   const byColumn = React.useMemo(() => {
     const map = new Map<S, T[]>();
     for (const col of columns) map.set(col.id, []);
-    for (const item of localItems) {
+    for (const item of items) {
       const s = getStatus(item);
       map.get(s)?.push(item);
     }
     return map;
-  }, [localItems, columns, getStatus]);
+  }, [items, columns, getStatus]);
 
   function handleDragStart(e: DragStartEvent) {
     setActiveId(e.active.id as string);
@@ -62,13 +59,12 @@ export function KanbanBoard<T extends { id: string }, S extends string>({
     const { active, over } = e;
     if (!over) return;
     const newStatus = over.id as S;
-    const item = localItems.find((i) => i.id === active.id);
+    const item = items.find((i) => i.id === active.id);
     if (!item || getStatus(item) === newStatus) return;
-    setLocalItems((prev) => prev.map((i) => (i.id === item.id ? i : i)));
     onMove(item, newStatus);
   }
 
-  const activeItem = localItems.find((i) => i.id === activeId);
+  const activeItem = items.find((i) => i.id === activeId);
 
   return (
     <DndContext id={id} sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>

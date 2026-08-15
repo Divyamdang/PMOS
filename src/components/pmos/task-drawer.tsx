@@ -37,7 +37,6 @@ export function TaskDrawer() {
 
   React.useEffect(() => {
     if (taskId) load();
-    else setTask(null);
   }, [taskId, load]);
 
   return (
@@ -48,7 +47,7 @@ export function TaskDrawer() {
             <LoadingState rows={4} />
           </div>
         ) : (
-          <TaskDrawerBody task={task} users={users} onChange={load} />
+          <TaskDrawerBody key={task.id} task={task} users={users} onChange={load} />
         )}
       </SheetContent>
     </Sheet>
@@ -62,10 +61,9 @@ function TaskDrawerBody({ task, users, onChange }: { task: TaskDetail; users: { 
   const [newSubtask, setNewSubtask] = React.useState("");
   const closeDrawer = useUIStore((s) => s.closeTaskDrawer);
 
-  React.useEffect(() => {
-    setTitle(task.title);
-    setDescription(task.description ?? "");
-  }, [task.id, task.title, task.description]);
+  // No sync-on-prop-change effect needed: TaskDrawerBody is remounted via
+  // `key={task.id}` whenever the drawer switches tasks, so useState's
+  // initializer already picks up the right title/description per task.
 
   async function saveField(data: Parameters<typeof updateTask>[1]) {
     await updateTask(task.id, data);

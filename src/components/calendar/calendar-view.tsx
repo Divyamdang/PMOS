@@ -22,10 +22,6 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CalendarData } from "@/lib/queries/calendar";
 
-type Task = CalendarData["tasks"][number];
-type FollowUp = CalendarData["followUps"][number];
-type Meeting = CalendarData["meetings"][number];
-
 export function CalendarView({ tasks, followUps, meetings, monthIso }: CalendarData & { monthIso: string }) {
   const router = useRouter();
   const openTaskDrawer = useUIStore((s) => s.openTaskDrawer);
@@ -55,10 +51,10 @@ export function CalendarView({ tasks, followUps, meetings, monthIso }: CalendarD
       <div className="flex items-center justify-between">
         <h1 className="text-xl" style={{ fontFamily: "var(--font-display)" }}>{format(monthDate, "MMMM yyyy")}</h1>
         <div className="flex items-center gap-1">
-          <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => go(-1)}>
+          <Button size="icon" variant="outline" className="h-7 w-7" aria-label="Previous month" onClick={() => go(-1)}>
             <ChevronLeft className="h-3.5 w-3.5" />
           </Button>
-          <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => go(1)}>
+          <Button size="icon" variant="outline" className="h-7 w-7" aria-label="Next month" onClick={() => go(1)}>
             <ChevronRight className="h-3.5 w-3.5" />
           </Button>
         </div>

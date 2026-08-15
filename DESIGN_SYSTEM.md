@@ -160,9 +160,65 @@ by default now.
 
 ## Screen self-audit log (Section 8)
 
-Filled in as each key screen is built. Format: screen — resembles
-Jira/Slack/Salesforce? — matches a generic-AI default? — is boldness
-concentrated in the Routing Line? — would it be noticed if swapped into a
-generic SaaS product?
+Done as a full visual pass at the end of Phase 7, after every screen in the
+build was working, rather than screen-by-screen during the build — in
+practice each screen was checked against this file's tokens as it was
+built (six named colors, three type roles, Routing Line as the one bold
+element), and this is the final audit against Sections 1/2/5 specifically.
 
-- _(none built yet — Phase 1 in progress)_
+**Dashboard.** Not Jira/Slack/Salesforce — no saturated blue block, no
+avatar-chip cluster, no breadcrumb/tab chrome; the first thing after the
+greeting is the Routing Line, not a stat-card grid. Not a generic-AI
+default — dark graphite (not cream), Route/Settled/Amber/Coral are all
+visible in one view (blocked chip, follow-up chip, project health dots),
+soft-rounded cards (not newspaper hairlines). Boldness is concentrated in
+the Routing Line; everything below it (My Day list, project cards,
+waiting-for) is deliberately quiet. Distinctive at a glance — the Routing
+Line hero and stamped task keys aren't something a generic SaaS dashboard
+has.
+
+**Project Cockpit.** The tab strip is real risk territory for reading as
+Salesforce, but it's contained to exactly one screen (per spec's own
+allowance) rather than the navigation pattern for the whole app. Health/
+status render as colored dropdown chips + a compact Routing Line progress
+bar, not Jira-style badges. The "System suggests: At risk — reason. Apply?"
+nudge is a PMOS-specific touch no generic tracker has. Boldness stays
+subdued here (thin compact Routing Line, not the full hero) — correct,
+since the Dashboard already spent that budget.
+
+**Task Kanban (Tasks board / Cockpit board tab).** The most honest area of
+residual resemblance: a column board of cards is structurally a Kanban
+board, and Kanban-as-a-pattern is Jira/Trello's home turf — this isn't
+fixable without dropping Kanban entirely, which the master prompt
+explicitly requires ("Task Kanban" is a named deliverable). Mitigated
+rather than eliminated: task keys use the stamped-ledger mono treatment
+instead of the standard gray chip, priority renders as a colored dot pill,
+columns use the semantic Route/Amber/Coral palette instead of generic
+gray/blue. Boldness is deliberately absent here — no Routing Line inside
+the board — which is correct restraint, but it does mean this screen relies
+entirely on the smaller signature touches (key stamp, priority dot) to
+stay distinctive. Verdict: acceptable given the pattern is spec-mandated,
+but it's the screen an outside reviewer is most likely to say "this is a
+kanban board" about, and that's a fair read.
+
+**Task Drawer.** A right-side drawer is a common shape across Linear/Jira/
+Notion, but the field layout (inline selects for status/priority/assignee/
+due, not a dense form grid) and the stamped key at the top keep it from
+reading as a Jira issue modal specifically. Quiet by design — detail views
+shouldn't compete with the Routing Line — with the key stamp as the one
+distinctive touch.
+
+**Command Palette.** Followed Section 5's explicit allowance to use the
+Raycast/Linear pattern well rather than reinvent it — cmdk styled with our
+tokens (Route accent, Plex Mono shortcut hints). The "Ask AI: '<query>'"
+entry and the "Show me" quick-filters (Overdue/Blocked/Waiting/Due today)
+are PMOS-specific additions on top of the standard pattern, not a generic
+Raycast clone.
+
+**Overall:** the palette stays roughly 90/10 neutral-to-accent across every
+screen checked, the Routing Line is the only screen element that gets the
+"bold" treatment, and nothing here would be mistaken for Jira, Slack, or
+Salesforce in a specific, nameable way — with the one caveat that the
+Kanban board, taken in isolation, reads as "a kanban board" the way any
+Kanban board does, which is inherent to the pattern rather than a lapse in
+execution.

@@ -70,7 +70,7 @@ export default async function DashboardPage() {
       <section className="rounded-xl border p-5" style={{ borderColor: "var(--border-subtle)", background: "var(--card)" }}>
         <div className="mb-1 flex items-center justify-between">
           <p className="text-xs font-medium uppercase tracking-wider" style={{ color: "var(--muted-2)" }}>
-            The Routing Line — today's work
+            The Routing Line — today&apos;s work
           </p>
           <Link href="/tasks" className="flex items-center gap-1 text-xs" style={{ color: "var(--route)" }}>
             View all tasks <ArrowRight className="h-3 w-3" />

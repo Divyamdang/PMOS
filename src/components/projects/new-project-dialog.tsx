@@ -16,26 +16,23 @@ import type { Priority } from "@/generated/prisma";
 export function NewProjectDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const router = useRouter();
   const [name, setName] = React.useState("");
-  const [key, setKey] = React.useState("");
+  const [manualKey, setManualKey] = React.useState("");
   const [keyEdited, setKeyEdited] = React.useState(false);
   const [description, setDescription] = React.useState("");
   const [priority, setPriority] = React.useState<Priority>("P2");
   const [targetDate, setTargetDate] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
 
-  React.useEffect(() => {
-    if (!keyEdited) {
-      setKey(
-        name
-          .split(/\s+/)
-          .filter(Boolean)
-          .map((w) => w[0])
-          .join("")
-          .toUpperCase()
-          .slice(0, 4)
-      );
-    }
-  }, [name, keyEdited]);
+  // Derived during render rather than synced via effect — the key follows
+  // the name automatically until the user types their own.
+  const autoKey = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 4);
+  const key = keyEdited ? manualKey : autoKey;
 
   async function submit() {
     if (!name.trim() || !key.trim()) return;
@@ -51,7 +48,7 @@ export function NewProjectDialog({ open, onOpenChange }: { open: boolean; onOpen
       toast.success("Project created.", { description: `${project.key} is ready.` });
       onOpenChange(false);
       setName("");
-      setKey("");
+      setManualKey("");
       setKeyEdited(false);
       setDescription("");
       router.push(`/projects/${project.key}`);
@@ -80,7 +77,7 @@ export function NewProjectDialog({ open, onOpenChange }: { open: boolean; onOpen
               <Input
                 value={key}
                 onChange={(e) => {
-                  setKey(e.target.value.toUpperCase());
+                  setManualKey(e.target.value.toUpperCase());
                   setKeyEdited(true);
                 }}
                 placeholder="PGR"
