@@ -6,22 +6,34 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createRisk } from "@/app/actions/risks";
 import { toast } from "sonner";
 
-export function NewRiskDialog({ open, onOpenChange, defaultProjectId }: { open: boolean; onOpenChange: (open: boolean) => void; defaultProjectId?: string }) {
+export function NewRiskDialog({
+  open,
+  onOpenChange,
+  defaultProjectId,
+  projects,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  defaultProjectId?: string;
+  projects?: { id: string; name: string }[];
+}) {
   const [risk, setRisk] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [mitigation, setMitigation] = React.useState("");
   const [probability, setProbability] = React.useState(3);
   const [impact, setImpact] = React.useState(3);
+  const [projectId, setProjectId] = React.useState(defaultProjectId ?? "none");
   const [submitting, setSubmitting] = React.useState(false);
 
   async function submit() {
     if (!risk.trim()) return;
     setSubmitting(true);
     try {
-      await createRisk({ risk: risk.trim(), description: description.trim() || undefined, mitigation: mitigation.trim() || undefined, probability, impact, projectId: defaultProjectId });
+      await createRisk({ risk: risk.trim(), description: description.trim() || undefined, mitigation: mitigation.trim() || undefined, probability, impact, projectId: defaultProjectId ?? (projectId === "none" ? null : projectId) });
       toast.success("Risk logged.");
       onOpenChange(false);
       setRisk("");
@@ -62,6 +74,20 @@ export function NewRiskDialog({ open, onOpenChange, defaultProjectId }: { open: 
             <Label>Mitigation</Label>
             <Textarea value={mitigation} onChange={(e) => setMitigation(e.target.value)} rows={2} placeholder="What's the plan if this happens?" />
           </div>
+          {!defaultProjectId && projects && (
+            <div className="flex flex-col gap-1.5">
+              <Label>Project</Label>
+              <Select value={projectId} onValueChange={setProjectId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No project</SelectItem>
+                  {projects.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>

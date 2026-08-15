@@ -153,16 +153,49 @@ Both fixes verified in-browser (fresh tab, checked console was clean; then
 exercised the actual actions — action-item-to-task conversion, board
 navigation across pages).
 
+## Phase 4 — Product Management ✅
+
+- **Initiatives** (`/initiatives`): list + create, projects linked via
+  `Project.initiativeId` shown as chips (chip-to-initiative assignment UI
+  itself isn't built — projects currently link only if created with one via
+  a future edit; the action `assignProjectToInitiative` exists but nothing
+  calls it yet from the Projects UI).
+- **Risks** (`/risks`) and **Decisions** (`/decisions`) global list pages —
+  reused the `NewRiskDialog`/`NewDecisionDialog` already built for the
+  Project Cockpit in Phase 2, extended both with an optional `projects`
+  prop so they show a project picker when there's no `defaultProjectId`
+  (global context) and hide it when there is (cockpit context). Decisions
+  render as a timeline (connected dots + line) per spec.
+- **Releases** (`/releases`): bundles projects, computed completion %/open
+  issues/blocked count live from linked projects' tasks (not stored).
+- **Documents** (`/documents`, `/documents/[id]`): list + editor. Non-PRD
+  docs get a Tiptap rich-text editor (`RichTextEditor`, bold/italic/h2/
+  lists/quote toolbar). PRD-type docs get the full templated field set
+  from the spec instead, each auto-saving on blur via a server action.
+  "Convert requirements to tasks" splits `prdRequirements` by newline and
+  bulk-creates one task per line — verified in-browser (created a task from
+  the seeded PRD's requirements field).
+- **Metrics** (`/metrics`): manual entry + Recharts line charts grouped by
+  metric name, latest value vs. target shown inline.
+
+**Verified in-browser:** all six new list pages load clean (fresh-tab
+console check), PRD editor round-trips seeded data correctly, requirement
+→task conversion works.
+
+**Tooling note, not a product bug:** the browser automation's `scroll`
+action hung/timed out repeatedly on the Documents editor page for no
+apparent reason (screenshots and clicks worked fine throughout). Worked
+around by resizing the viewport tall instead of scrolling — worth knowing
+if a future session hits the same thing, so it doesn't get mistaken for an
+app-side infinite-loop or hang.
+
 ## Not started yet
 
-Phase 4 (Initiatives, Workstreams list/detail, Risks list page, Decisions
-list page, Releases, Documents editor, PRD builder, Metrics), Phase 5
-(Calendar, Timeline view, Analytics, Backup/restore/import/export — command
-palette and keyboard shortcuts already exist from Phase 1), Phase 6 (AI
-layer), Phase 7 (polish/QA/acceptance test).
+Phase 5 (Calendar, Timeline view, Analytics, Backup/restore/import/export —
+command palette and keyboard shortcuts already exist from Phase 1), Phase 6
+(AI layer), Phase 7 (polish/QA/acceptance test).
 
-Nav links to `/calendar`, `/initiatives`, `/risks`, `/decisions`,
-`/releases`, `/documents`, `/metrics`, `/analytics`, `/settings` currently
-404 — building these is Phase 4/5. (Risk/Decision *creation* already works
-from inside a Project Cockpit — `NewRiskDialog`/`NewDecisionDialog` — what's
-missing is the standalone list pages.)
+Nav links to `/calendar`, `/analytics`, `/settings` currently 404 —
+building these is Phase 5. Workstreams have no dedicated UI yet (the
+`Workstream` model and `createWorkstream` action exist; nothing surfaces
+them — low priority, Task creation doesn't require one).
