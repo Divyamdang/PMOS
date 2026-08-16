@@ -26,15 +26,85 @@ const CONVERSIONS: { value: InboxConversion; label: string; icon: typeof CheckSq
 
 type GmailResult = { ok: true; messages: GmailMessage[] } | { ok: false; reason: string };
 
+/** The Gmail half of the inbox, split out so it can suspend on its own.
+ *
+ * `use()` unwraps the promise the server handed down; until it settles this
+ * component (and only this component) suspends, so the captured-items list
+ * above it renders without waiting on a live Gmail round-trip. The handled-ids
+ * state stays in the parent — dismissing or converting a message has to hide
+ * it here, and the parent already owns that set. */
+function GmailList({
+  gmailPromise,
+  handledGmailIds,
+  setHandledGmailIds,
+}: {
+  gmailPromise: Promise<GmailResult>;
+  handledGmailIds: Set<string>;
+  setHandledGmailIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+}) {
+  const gmail = React.use(gmailPromise);
+
+  if (!gmail.ok) {
+    return <p className="text-xs" style={{ color: "var(--muted-2)" }}>{gmail.reason}</p>;
+  }
+
+  const gmailMessages = gmail.messages.filter((m) => !handledGmailIds.has(m.id));
+  if (gmailMessages.length === 0) {
+    return <p className="text-xs" style={{ color: "var(--muted-2)" }}>No unread mail.</p>;
+  }
+
+  return (
+    <>
+      {gmailMessages.map((m) => (
+        <div key={m.id} className="flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm" style={{ borderColor: "var(--border-subtle)", background: "var(--card)" }}>
+          <div className="min-w-0 flex-1">
+            <p className="truncate">{m.subject}</p>
+            <p className="truncate text-xs" style={{ color: "var(--muted-2)" }}>{m.from}</p>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline" className="h-7 shrink-0 gap-1 text-xs">
+                Convert <ChevronDown className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {CONVERSIONS.map((c) => (
+                <DropdownMenuItem
+                  key={c.value}
+                  onClick={async () => {
+                    const task = await convertGmailMessage(m, c.value);
+                    setHandledGmailIds((prev) => new Set(prev).add(m.id));
+                    toast.success(`Converted to ${c.label.toLowerCase()}.`, { description: task.taskKey });
+                  }}
+                >
+                  <c.icon className="h-3.5 w-3.5" /> {c.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <button
+            className="shrink-0"
+            aria-label="Dismiss"
+            style={{ color: "var(--muted-2)" }}
+            onClick={() => setHandledGmailIds((prev) => new Set(prev).add(m.id))}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ))}
+    </>
+  );
+}
+
 export function InboxView({
   items,
   projects,
-  gmail,
+  gmailPromise,
   openCaptureOnLoad,
 }: {
   items: InboxItem[];
   projects: { id: string; key: string; name: string }[];
-  gmail: GmailResult;
+  gmailPromise: Promise<GmailResult>;
   openCaptureOnLoad: boolean;
 }) {
   const router = useRouter();
@@ -48,8 +118,6 @@ export function InboxView({
       router.replace("/inbox");
     }
   }, [openCaptureOnLoad, setQuickCaptureOpen, router]);
-
-  const gmailMessages = gmail.ok ? gmail.messages.filter((m) => !handledGmailIds.has(m.id)) : [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -66,49 +134,15 @@ export function InboxView({
         <h2 className="flex items-center gap-1.5 text-sm font-medium">
           <Mail className="h-3.5 w-3.5" style={{ color: "var(--muted-2)" }} /> From Gmail
         </h2>
-        {!gmail.ok ? (
-          <p className="text-xs" style={{ color: "var(--muted-2)" }}>{gmail.reason}</p>
-        ) : gmailMessages.length === 0 ? (
-          <p className="text-xs" style={{ color: "var(--muted-2)" }}>No unread mail.</p>
-        ) : (
-          gmailMessages.map((m) => (
-            <div key={m.id} className="flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm" style={{ borderColor: "var(--border-subtle)", background: "var(--card)" }}>
-              <div className="min-w-0 flex-1">
-                <p className="truncate">{m.subject}</p>
-                <p className="truncate text-xs" style={{ color: "var(--muted-2)" }}>{m.from}</p>
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline" className="h-7 shrink-0 gap-1 text-xs">
-                    Convert <ChevronDown className="h-3 w-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {CONVERSIONS.map((c) => (
-                    <DropdownMenuItem
-                      key={c.value}
-                      onClick={async () => {
-                        const task = await convertGmailMessage(m, c.value);
-                        setHandledGmailIds((prev) => new Set(prev).add(m.id));
-                        toast.success(`Converted to ${c.label.toLowerCase()}.`, { description: task.taskKey });
-                      }}
-                    >
-                      <c.icon className="h-3.5 w-3.5" /> {c.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <button
-                className="shrink-0"
-                aria-label="Dismiss"
-                style={{ color: "var(--muted-2)" }}
-                onClick={() => setHandledGmailIds((prev) => new Set(prev).add(m.id))}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ))
-        )}
+        <React.Suspense
+          fallback={<p className="text-xs" style={{ color: "var(--muted-2)" }}>Checking Gmail…</p>}
+        >
+          <GmailList
+            gmailPromise={gmailPromise}
+            handledGmailIds={handledGmailIds}
+            setHandledGmailIds={setHandledGmailIds}
+          />
+        </React.Suspense>
       </div>
 
       <div className="flex flex-col gap-2">
