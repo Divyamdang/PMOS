@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
 import { nextTaskKey } from "@/lib/keys";
+import { buildTaskCreateData } from "@/lib/tasks/create-data";
 import { logActivity } from "@/lib/activity";
 import { revalidatePath } from "next/cache";
 import type { TaskStatus, TaskType, Priority } from "@/generated/prisma";
@@ -33,20 +34,7 @@ export async function createTask(input: {
   const taskKey = await nextTaskKey(project?.key ?? null);
 
   const task = await db.task.create({
-    data: {
-      taskKey,
-      title: input.title,
-      description: input.description,
-      type: input.type ?? "TASK",
-      priority: input.priority ?? "P2",
-      projectId: input.projectId ?? null,
-      workstreamId: input.workstreamId ?? null,
-      assigneeId: input.assigneeId ?? null,
-      reporterId: user.id,
-      dueDate: input.dueDate ?? null,
-      parentTaskId: input.parentTaskId ?? null,
-      isPersonal: input.isPersonal ?? false,
-    },
+    data: buildTaskCreateData(input, { taskKey, reporterId: user.id }),
   });
   await logActivity({ entityType: "Task", entityId: task.id, action: "created", message: `Created ${taskKey}`, taskId: task.id, projectId: task.projectId ?? undefined });
   revalidateTaskViews(project?.key);

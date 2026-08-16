@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
 import { logActivity } from "@/lib/activity";
+import { buildTaskCreateData } from "@/lib/tasks/create-data";
 import {
   PROJECTS_SHEET,
   TASKS_SHEET,
@@ -231,33 +232,34 @@ export async function commitImport(payloadJson: string): Promise<ImportResult> {
         return `${prefix}-${n}`;
       };
 
-      const shared = (t: CommitPayload["tasks"][number]) => ({
-        title: t.title,
-        description: t.description,
-        type: t.type as TaskType,
-        status: t.status as TaskStatus,
-        priority: t.priority as Priority,
-        projectId: projectIdByKey.get(t.projectKey) ?? null,
-        assigneeId: t.assigneeId,
-        reporterId: user.id,
-        dueDate: t.dueDate ? new Date(t.dueDate) : null,
-        completedAt: t.status === "DONE" ? new Date() : null,
-      });
+      // Same field mapping and defaults as createTask(), through the one
+      // shared builder — imported rows are indistinguishable from hand-created
+      // ones, and neither path can drift from the other.
+      const rowData = (t: CommitPayload["tasks"][number], parentTaskId: string | null) =>
+        buildTaskCreateData(
+          {
+            title: t.title,
+            description: t.description,
+            type: t.type as TaskType,
+            status: t.status as TaskStatus,
+            priority: t.priority as Priority,
+            projectId: projectIdByKey.get(t.projectKey) ?? null,
+            assigneeId: t.assigneeId,
+            dueDate: t.dueDate ? new Date(t.dueDate) : null,
+            parentTaskId,
+          },
+          { taskKey: nextKey(t.projectKey), reporterId: user.id },
+        );
 
       // Parents first so children have a real id to point at.
-      const parents = payload.tasks.filter((t) => !t.parentTitle);
-      const children = payload.tasks.filter((t) => t.parentTitle);
-
       const idByTitle = new Map<string, string>();
-      for (const t of parents) {
-        const row = await tx.task.create({ data: { taskKey: nextKey(t.projectKey), ...shared(t) } });
+      for (const t of payload.tasks.filter((t) => !t.parentTitle)) {
+        const row = await tx.task.create({ data: rowData(t, null) });
         idByTitle.set(`${t.projectKey}::${t.title.toLowerCase()}`, row.id);
       }
-      for (const t of children) {
+      for (const t of payload.tasks.filter((t) => t.parentTitle)) {
         const parentId = idByTitle.get(`${t.projectKey}::${t.parentTitle!.toLowerCase()}`) ?? null;
-        const row = await tx.task.create({
-          data: { taskKey: nextKey(t.projectKey), ...shared(t), parentTaskId: parentId },
-        });
+        const row = await tx.task.create({ data: rowData(t, parentId) });
         idByTitle.set(`${t.projectKey}::${t.title.toLowerCase()}`, row.id);
       }
 
