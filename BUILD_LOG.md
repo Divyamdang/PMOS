@@ -528,3 +528,66 @@ looking for them:
   real mouse-drag through browser automation in this session — dnd-kit's
   pointer-activation distance doesn't reliably trigger from synthetic
   events. Worth one real-mouse check.
+
+## Performance pass — baseline (measured before any fix)
+
+Profiled first rather than guessing, and the headline finding reframes the
+whole exercise: **the database is essentially empty** (1 project, 1 task, 5
+activity events). At N=1 the usual suspects — N+1 patterns, missing indexes,
+list virtualization, memoization — are all invisible. None of them can be
+what makes the app feel slow.
+
+The actual cost is **network round-trip latency to a database on the other
+side of the world**, paid once per query:
+
+| Measurement | Result |
+|---|---|
+| Trivial `SELECT 1` round-trip | **891 ms** |
+| Raw TCP handshake to the DB host | 160 ms |
+| 8 sequential queries | 6510 ms |
+| 8 parallel queries (`Promise.all`) | 2186 ms |
+
+Page times observed in the dev server log against that near-empty DB:
+`/dashboard` 5.5 s · `/inbox` 4.5 s · `/my-day` 1.8 s · `/projects` 0.95 s.
+
+Nothing is co-located: Supabase is in Tokyo (`ap-northeast-1`), Vercel
+functions default to US-East (`iad1`), and the developer is in India. Only
+~160 ms of the 891 ms is physical distance; the rest is TLS + pgbouncer
+overhead paid per query, which is why parallelising matters so much.
+
+`/dashboard` breakdown — it runs **four sequential waves**, each paying the
+full round-trip toll (harness: `measure-perf.mjs`, mirrors
+`src/lib/queries/dashboard.ts` wave for wave):
+
+| Wave | Queries | Time |
+|---|---|---|
+| 1 — `getCurrentUser()` | 1 | 898 ms |
+| 2 — main `Promise.all` | 8 | 1993 ms |
+| 3 — N+1 per-project progress | 2 per project | 817 ms |
+| 4 — `myDayTasks` | 1 | 818 ms |
+| **Total** | | **4529 ms** |
+| Same queries collapsed to **one** parallel wave | | **2009 ms** |
+
+### Ranked offenders (fix biggest first)
+
+1. **Remote DB latency** — 891 ms/query, multiplies everything else. Only
+   fixable by co-locating DB and compute (~25x). Chosen: move Supabase to
+   Mumbai `ap-south-1` + pin Vercel to `bom1`. Cheap to do *now*, while
+   there's almost no data to migrate.
+2. **Zero `loading.tsx`, zero `Suspense` boundaries app-wide** — Next.js
+   blocks on the full server render with nothing painted, so a click looks
+   like it did nothing for seconds. This *is* the "slow to respond after
+   clicks" complaint; it's a perceived-latency problem, not a throughput one.
+3. **Four sequential round-trip waves on `/dashboard`** — 4529 ms → 2009 ms
+   by collapsing to one wave (~2.25x). `getCurrentUser()` alone is called 23
+   times across 16 files and does a full DB lookup each time.
+4. **`/inbox` blocks on the live Gmail API** inside the same `Promise.all` as
+   local data — 4.5 s before anything renders.
+5. **No optimistic updates on mutations** — Phase 7 removed `KanbanBoard`'s
+   local state as "dead weight", so a drag now waits for the server action
+   *plus* `revalidatePath` before the card visibly moves.
+6. **Notification bell fetches on every mount** (twice in dev via
+   StrictMode), adding a round-trip wave to every navigation.
+7. **Zero `@@index` declarations in the schema** — Postgres does not
+   auto-index foreign keys. No measurable impact at 1 row, but wrong at
+   scale and behaviour-safe to fix.
