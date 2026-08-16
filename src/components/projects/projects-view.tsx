@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { KanbanBoard } from "@/components/pmos/kanban-board";
 import { ProjectCard } from "@/components/pmos/project-card";
 import { NewProjectDialog } from "@/components/projects/new-project-dialog";
+import { ImportProjectsDialog } from "@/components/projects/import-projects-dialog";
 import { EmptyState } from "@/components/pmos/states";
 import { updateProjectStatus } from "@/app/actions/projects";
 import { PROJECT_KANBAN_COLUMNS, PROJECT_STATUS_META } from "@/lib/domain";
-import { Search, Plus, LayoutGrid, List as ListIcon, FolderKanban } from "lucide-react";
+import { Search, Plus, LayoutGrid, List as ListIcon, FolderKanban, FileSpreadsheet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import type { Health, Priority, ProjectStatus } from "@/generated/prisma";
@@ -34,6 +35,7 @@ export function ProjectsView({ projects, openNewOnLoad }: { projects: ProjectWit
   const [view, setView] = React.useState<"board" | "list">("board");
   const [query, setQuery] = React.useState("");
   const [newOpen, setNewOpen] = React.useState(openNewOnLoad);
+  const [importOpen, setImportOpen] = React.useState(false);
 
   const filtered = projects.filter(
     (p) => p.name.toLowerCase().includes(query.toLowerCase()) || p.key.toLowerCase().includes(query.toLowerCase())
@@ -51,6 +53,9 @@ export function ProjectsView({ projects, openNewOnLoad }: { projects: ProjectWit
             <ViewButton active={view === "board"} onClick={() => setView("board")} icon={LayoutGrid} label="Board view" />
             <ViewButton active={view === "list"} onClick={() => setView("list")} icon={ListIcon} label="List view" />
           </div>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setImportOpen(true)}>
+            <FileSpreadsheet className="h-4 w-4" /> Import
+          </Button>
           <Button size="sm" className="gap-1.5" onClick={() => setNewOpen(true)}>
             <Plus className="h-4 w-4" /> New project
           </Button>
@@ -94,6 +99,7 @@ export function ProjectsView({ projects, openNewOnLoad }: { projects: ProjectWit
       )}
 
       <NewProjectDialog open={newOpen} onOpenChange={(o) => { setNewOpen(o); if (!o) router.replace("/projects"); }} />
+      <ImportProjectsDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
   );
 }
