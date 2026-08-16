@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/current-user";
+import { getCurrentUser, getCurrentUserId } from "@/lib/current-user";
 
 function startOfToday() {
   const d = new Date();
@@ -12,13 +12,25 @@ function endOfToday() {
   return d;
 }
 
+/** Everything the dashboard renders, in a single parallel wave.
+ *
+ * This used to run as four sequential waves — resolve the user, then the main
+ * query batch, then a per-project progress loop, then My Day — and each wave
+ * paid a full database round-trip before the next could start (~4.5s total
+ * against a remote database, for a page with almost no data on it).
+ *
+ * Three things collapse it to one wave: the user id comes off the JWT so the
+ * queries don't have to wait for the user row; My Day never depended on the
+ * batch above it; and per-project progress is one grouped aggregate instead
+ * of two counts per project. Same returned shape, same numbers. */
 export async function getDashboardData() {
-  const user = await getCurrentUser();
+  const userId = await getCurrentUserId();
   const today = startOfToday();
   const todayEnd = endOfToday();
 
-  const [overdueTasks, dueTodayTasks, blockedTasks, followUpsDue, waitingDue, activeTasks, projects, upcomingMeetings] =
+  const [user, overdueTasks, dueTodayTasks, blockedTasks, followUpsDue, waitingDue, activeTasks, projects, upcomingMeetings, doneByProject, myDayTasks] =
     await Promise.all([
+      getCurrentUser(),
       db.task.count({ where: { dueDate: { lt: today }, status: { not: "DONE" } } }),
       db.task.count({ where: { dueDate: { gte: today, lte: todayEnd }, status: { not: "DONE" } } }),
       db.task.count({ where: { status: "BLOCKED" } }),
@@ -37,7 +49,7 @@ export async function getDashboardData() {
       db.task.findMany({
         where: {
           status: { notIn: ["DONE"] },
-          OR: [{ dueDate: { lte: todayEnd } }, { assigneeId: user.id, status: { in: ["IN_PROGRESS", "WAITING", "BLOCKED"] } }],
+          OR: [{ dueDate: { lte: todayEnd } }, { assigneeId: userId, status: { in: ["IN_PROGRESS", "WAITING", "BLOCKED"] } }],
         },
         include: { project: true },
         orderBy: [{ priority: "asc" }, { dueDate: "asc" }],
@@ -50,29 +62,30 @@ export async function getDashboardData() {
         take: 6,
       }),
       db.meeting.findMany({ where: { date: { gte: today } }, orderBy: { date: "asc" }, take: 4, include: { project: true } }),
+      // Done-task counts for every project in one aggregate. Replaces a loop
+      // that ran two counts per project — the totals already come back on
+      // each project as `_count.tasks`, so only the done side is missing.
+      db.task.groupBy({ by: ["projectId"], where: { status: "DONE" }, _count: { _all: true } }),
+      db.task.findMany({
+        where: {
+          OR: [
+            { assigneeId: userId, dueDate: { gte: today, lte: todayEnd } },
+            { assigneeId: userId, isPersonal: true, status: { notIn: ["DONE"] } },
+          ],
+        },
+        orderBy: [{ priority: "asc" }],
+        take: 8,
+        include: { project: true },
+      }),
     ]);
 
-  const projectsWithProgress = await Promise.all(
-    projects.map(async (p) => {
-      const [total, done] = await Promise.all([
-        db.task.count({ where: { projectId: p.id } }),
-        db.task.count({ where: { projectId: p.id, status: "DONE" } }),
-      ]);
-      return { ...p, progress: total > 0 ? Math.round((done / total) * 100) : 0, taskTotal: total };
-    })
-  );
-
-  const myDayTasks = await db.task.findMany({
-    where: {
-      OR: [
-        { assigneeId: user.id, dueDate: { gte: today, lte: todayEnd } },
-        { assigneeId: user.id, isPersonal: true, status: { notIn: ["DONE"] } },
-      ],
-    },
-    orderBy: [{ priority: "asc" }],
-    take: 8,
-    include: { project: true },
+  const doneCounts = new Map(doneByProject.map((g) => [g.projectId, g._count._all]));
+  const projectsWithProgress = projects.map((p) => {
+    const total = p._count.tasks;
+    const done = doneCounts.get(p.id) ?? 0;
+    return { ...p, progress: total > 0 ? Math.round((done / total) * 100) : 0, taskTotal: total };
   });
+
   const myDayDone = myDayTasks.filter((t) => t.status === "DONE").length;
 
   return {
