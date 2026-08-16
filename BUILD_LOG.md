@@ -660,3 +660,74 @@ between the click and the first paint rather than total server time.
   its local queries, so a third-party round-trip gated the entire page (~4.5s).
   The page now passes the unawaited promise down and the Gmail list unwraps it
   with `use()` behind its own `Suspense` boundary.
+
+### B4 / B5 / B6
+
+- **B4** — Phase 7 removed `KanbanBoard`'s local state as dead weight, which
+  left every drag waiting on the server action *and* the revalidation behind it
+  before the card moved. `useOptimistic` now applies the status immediately.
+  Overrides live in a map keyed by item id rather than on the items, because
+  `getStatus` is a caller concern and the generic board can't know which field
+  holds the status. All four call sites benefit without changing — they already
+  returned promises the `void` return type was discarding.
+- **B5** — the bell fetched its own count from a `useEffect` on every mount
+  (twice in dev under StrictMode). Deleting that wasn't an option, since it
+  renders a count badge that would have gone blank until the popover opened.
+  The count is resolved in the `(app)` layout instead, alongside the user
+  lookup, so it costs no wall-clock time and the badge is right on first paint.
+- **B6** — 31 indexes on the columns the app actually filters and joins on,
+  composites ordered equality-first (`[projectId, status]`, `[status, dueDate]`).
+  **No measurable effect today** — one project, one task, and a scan of one row
+  is free. This is groundwork for the data the import will bring in.
+
+## Excel project import
+
+"Import" next to New project on `/projects`. Parses a two-sheet workbook,
+validates every row, previews exactly what would happen, writes nothing until
+confirmed — the same preview-before-write shape as the AI features.
+
+- **One column definition** (`src/lib/import/columns.ts`) drives both the
+  template generator and the parser, so the template can't describe a shape the
+  importer won't accept.
+- **Enums resolve from either the stored value or the displayed label**, so a
+  sheet produced by the existing task export re-imports unedited. Column order
+  in the uploaded file doesn't have to match the template.
+- **Matching:** projects upsert by `Key`. Tasks match on (Project Key + Title)
+  and are **create-only** — existing tasks are left untouched, so a re-import is
+  a no-op and never clobbers edits made in the app. That was a deliberate call
+  (the alternative, updating in place, would keep the spreadsheet as source of
+  truth but overwrite in-app work).
+- **Owner/Assignee** resolve against `User` by email then name. Note these
+  point at `User`, not `Person`, so they only resolve for teammates who have
+  actually signed into WTS; unmatched leaves the field empty and says so rather
+  than inventing a phantom record.
+
+### Why the importer doesn't call `createTask()` in a loop
+
+The spec asks not to fork a separate insert path, but `createTask()` costs
+**five round-trips per call** (`getCurrentUser` → `project.findUnique` →
+`nextTaskKey` → `create` → `logActivity`) and revalidates four paths each time.
+For a 32-row sheet that's ~160 round-trips and 32 cache invalidations, and
+calling `nextTaskKey()` per row walks straight into the duplicate-key bug
+documented in Phase 3 — it re-reads the max each call, so keys collide inside a
+loop before any of them are committed.
+
+The resolution is `buildTaskCreateData()` in `src/lib/tasks/create-data.ts`:
+one pure function deciding a task's stored fields and defaults, called by both
+`createTask()` and the importer. No duplicated business rules, and imported
+tasks are indistinguishable from hand-created ones. The importer resolves
+lookups up front, allocates keys in memory from one high-water mark per prefix,
+writes parents-then-children in a single transaction, and revalidates once.
+
+Extracting it also surfaced a bug the duplication had been hiding: a task
+imported as already `DONE` never got `completedAt` stamped, which would have
+skewed cycle-time analytics the same way the Phase 5 seed bug did.
+
+### Verified
+
+27 assertions over well-formed, malformed, reordered-column and
+non-spreadsheet input, all passing: label→enum resolution, date parsing,
+subtask nesting; bad enums falling back with a named warning; missing keys,
+missing names, duplicate keys and titleless rows rejected; unknown project keys
+rejected; self-referencing and dangling parents demoted to top-level rather
+than dropped; and a garbage file returning a message instead of throwing.
