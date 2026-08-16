@@ -62,6 +62,8 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+
+  @@index([userId])
 }
 
 model Session {
@@ -70,6 +72,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model VerificationToken {
@@ -163,6 +167,11 @@ model Project {
   releases     ReleaseProject[]
   vendors      VendorProject[]
   activityEvents ActivityEvent[]
+
+  @@index([archived, status])
+  @@index([ownerId])
+  @@index([initiativeId])
+  @@index([updatedAt])
 }
 
 model Workstream {
@@ -283,6 +292,16 @@ model Task {
   meetingActionItems ActionItem[]
   followUps     FollowUp[]
   waitingFor    WaitingForItem[]
+
+  @@index([projectId, status])
+  @@index([assigneeId, status])
+  @@index([status, dueDate])
+  @@index([parentTaskId])
+  @@index([workstreamId])
+  @@index([reporterId])
+  @@index([personId])
+  @@index([vendorId])
+  @@index([planDate])
 }
 
 model TaskDependency {
@@ -448,6 +467,10 @@ model FollowUp {
   notes          String?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
+
+  @@index([status, followUpDate])
+  @@index([personId])
+  @@index([vendorId])
 }
 
 enum WaitingForStatus {
@@ -475,6 +498,11 @@ model WaitingForItem {
   status        WaitingForStatus @default(WAITING)
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
+
+  @@index([status, followUpDate])
+  @@index([personId])
+  @@index([vendorId])
+  @@index([projectId])
 }
 
 // ---------------------------------------------------------------------------
@@ -496,6 +524,9 @@ model Meeting {
   participants MeetingParticipant[]
   actionItems  ActionItem[]
   vendors      MeetingVendor[]
+
+  @@index([date])
+  @@index([projectId])
 }
 
 model MeetingParticipant {
@@ -550,6 +581,9 @@ model Risk {
   project     Project?   @relation(fields: [projectId], references: [id])
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+
+  @@index([projectId, status])
+  @@index([ownerId])
 }
 
 // ---------------------------------------------------------------------------
@@ -620,6 +654,8 @@ model Document {
   updatedAt DateTime     @updatedAt
 
   attachments Attachment[]
+
+  @@index([projectId])
 }
 
 enum IncidentSeverity {
@@ -678,6 +714,10 @@ model ActivityEvent {
   task      Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
   projectId String?
   project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+  @@index([taskId])
+  @@index([createdAt])
 }
 
 // ---------------------------------------------------------------------------
@@ -702,5 +742,7 @@ model InboxItem {
   convertedType InboxConversion?
   convertedTaskId String?
   createdAt     DateTime         @default(now())
+
+  @@index([userId, converted])
 }
 
