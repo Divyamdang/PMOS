@@ -16,6 +16,11 @@ import { cn } from "@/lib/utils";
 
 export type KanbanColumn<S extends string> = { id: S; label: string; color?: string };
 
+/** Stable identity so `useOptimistic`'s base state doesn't change every render.
+ * Once a transition settles, overrides fall back to this and the freshly
+ * revalidated `items` prop takes over again. */
+const NO_OVERRIDES: ReadonlyMap<string, string> = new Map();
+
 export function KanbanBoard<T extends { id: string }, S extends string>({
   id,
   columns,
@@ -34,21 +39,40 @@ export function KanbanBoard<T extends { id: string }, S extends string>({
   items: T[];
   getStatus: (item: T) => S;
   renderCard: (item: T) => React.ReactNode;
-  onMove: (item: T, newStatus: S) => void;
+  onMove: (item: T, newStatus: S) => void | Promise<unknown>;
   emptyLabel?: string;
 }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const [activeId, setActiveId] = React.useState<string | null>(null);
 
+  /** Dropped cards move immediately instead of waiting for the server action
+   * and the revalidation that follows it to come back — which is what made a
+   * drag feel like it hadn't registered. Overrides live in a map keyed by id
+   * rather than on the items themselves, because `getStatus` is a caller
+   * concern and this component doesn't know which field holds the status.
+   *
+   * React clears these when the transition settles: on success the revalidated
+   * `items` already carry the new status so nothing visibly changes, and on
+   * failure the card slides back to where it started. */
+  const [overrides, applyOverride] = React.useOptimistic(
+    NO_OVERRIDES as ReadonlyMap<string, S>,
+    (current, move: { id: string; status: S }) => new Map(current).set(move.id, move.status)
+  );
+
+  const effectiveStatus = React.useCallback(
+    (item: T) => overrides.get(item.id) ?? getStatus(item),
+    [overrides, getStatus]
+  );
+
   const byColumn = React.useMemo(() => {
     const map = new Map<S, T[]>();
     for (const col of columns) map.set(col.id, []);
     for (const item of items) {
-      const s = getStatus(item);
+      const s = effectiveStatus(item);
       map.get(s)?.push(item);
     }
     return map;
-  }, [items, columns, getStatus]);
+  }, [items, columns, effectiveStatus]);
 
   function handleDragStart(e: DragStartEvent) {
     setActiveId(e.active.id as string);
@@ -60,8 +84,18 @@ export function KanbanBoard<T extends { id: string }, S extends string>({
     if (!over) return;
     const newStatus = over.id as S;
     const item = items.find((i) => i.id === active.id);
-    if (!item || getStatus(item) === newStatus) return;
-    onMove(item, newStatus);
+    if (!item || effectiveStatus(item) === newStatus) return;
+
+    React.startTransition(async () => {
+      applyOverride({ id: item.id, status: newStatus });
+      try {
+        await onMove(item, newStatus);
+      } catch {
+        // Swallowed on purpose. The optimistic override is discarded when the
+        // transition ends either way, so a failed move simply snaps back —
+        // same end state as before, minus the unhandled rejection.
+      }
+    });
   }
 
   const activeItem = items.find((i) => i.id === activeId);
