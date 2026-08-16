@@ -591,3 +591,72 @@ full round-trip toll (harness: `measure-perf.mjs`, mirrors
 7. **Zero `@@index` declarations in the schema** — Postgres does not
    auto-index foreign keys. No measurable impact at 1 row, but wrong at
    scale and behaviour-safe to fix.
+
+## Performance pass — results
+
+### A. Co-located the database (biggest single win)
+
+Moved Supabase from Tokyo (`ap-northeast-1`) to Mumbai (`ap-south-1`), new
+project ref `jalulpofymojcmuapset`, and pinned Vercel's functions to `bom1`
+via `vercel.json`. Migration was cheap precisely because it was done early —
+the whole database was 9 rows.
+
+Procedure, if it ever needs repeating: dump every non-empty table via Prisma
+→ point `.env.local` at the new project → `prisma migrate deploy` → restore
+parents-before-children with `createMany` → verify counts. The `account` row
+matters most: it holds the Google OAuth refresh token, and losing it would
+force every user to re-consent to Gmail/Calendar.
+
+| Network hop (TCP handshake) | Tokyo | Mumbai |
+|---|---|---|
+| From the dev machine (India) | 154 ms | **27 ms** |
+
+**Pooler choice is worth knowing about.** Measured on the Mumbai project:
+
+| Connection | `SELECT 1` |
+|---|---|
+| Transaction pooler, port 6543 (`?pgbouncer=true`) | 123 ms |
+| Session pooler, port 5432 | **27 ms** |
+
+That ~96 ms gap is Prisma disabling prepared statements under pgbouncer, so
+every query re-parses. We stayed on the transaction pooler for `DATABASE_URL`
+because that's Supabase's documented recommendation for serverless — session
+mode holds a server connection per client and can exhaust the connection
+limit under concurrent lambdas. For a team this size the session pooler would
+likely be safe and ~4.5x faster, but that trade (latency vs. a hard failure
+mode under load) is a deliberate choice, not a default worth making silently.
+
+### B3. Collapsed the dashboard's four query waves into one
+
+`getCurrentUser()` wrapped in React `cache()` (it was called ~23 times across
+16 files — the `(app)` layout and again inside each page's query function,
+each a separate round-trip); new `getCurrentUserId()` reads the id off the JWT
+so queries don't wait on the user row to learn an id the session already had;
+My Day folded into the main batch it never depended on; per-project progress
+replaced by one grouped aggregate instead of two counts per project. Output
+verified identical against the old code path.
+
+### Measured, same harness throughout
+
+| `/dashboard` | Round-trip floor | Total |
+|---|---|---|
+| Baseline — Tokyo, 4 waves | 891 ms | **4654 ms** |
+| Mumbai, 4 waves (region alone) | 126 ms | 761 ms |
+| Mumbai, 1 wave (region + B3) | 126 ms | **328 ms** |
+
+**14x end to end**, and the two fixes compound rather than overlap: the region
+move cut the cost of each round-trip, B3 cut how many there are.
+
+### B1 / B2. Perceived latency
+
+Neither shows up in the table above, because both are about what happens
+between the click and the first paint rather than total server time.
+
+- **B1** — there was no `loading.tsx` anywhere in the app, so Next.js had
+  nothing to render while a page was in flight and the browser simply held
+  the previous screen. One file at the `(app)` group level now covers every
+  route in the shell, including future ones.
+- **B2** — `/inbox` awaited the live Gmail API in the same `Promise.all` as
+  its local queries, so a third-party round-trip gated the entire page (~4.5s).
+  The page now passes the unawaited promise down and the Gmail list unwraps it
+  with `use()` behind its own `Suspense` boundary.
