@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { NAV_GROUPS, SETTINGS_ITEM } from "./nav-config";
 import { useUIStore } from "@/lib/store/ui-store";
 import { NotificationBell } from "./notification-bell";
+import type { NotificationsData } from "@/lib/queries/notifications";
 import { MobileNav } from "./mobile-nav";
 import { signOutAction } from "@/app/actions/auth";
 
@@ -22,7 +23,7 @@ function useSectionTitle() {
 
 type ShellUser = { name: string; email: string; image: string | null };
 
-export function TopBar({ user }: { user: ShellUser }) {
+export function TopBar({ user, notifications }: { user: ShellUser; notifications: NotificationsData }) {
   const title = useSectionTitle();
   const setCommandPaletteOpen = useUIStore((s) => s.setCommandPaletteOpen);
   const setQuickCaptureOpen = useUIStore((s) => s.setQuickCaptureOpen);
@@ -64,7 +65,7 @@ export function TopBar({ user }: { user: ShellUser }) {
           <Sun className="h-4 w-4 scale-100 dark:scale-0 transition-transform" />
           <Moon className="absolute h-4 w-4 scale-0 dark:scale-100 transition-transform" />
         </Button>
-        <NotificationBell />
+        <NotificationBell initialData={notifications} />
         <Button size="sm" className="gap-1.5" onClick={() => setQuickCaptureOpen(true)}>
           <Plus className="h-4 w-4" />
           New

@@ -9,15 +9,17 @@ import { fetchNotifications } from "@/app/actions/notifications";
 import { useUIStore } from "@/lib/store/ui-store";
 import type { NotificationsData } from "@/lib/queries/notifications";
 
-export function NotificationBell() {
+export function NotificationBell({ initialData }: { initialData: NotificationsData }) {
   const router = useRouter();
   const openTaskDrawer = useUIStore((s) => s.openTaskDrawer);
-  const [data, setData] = React.useState<NotificationsData | null>(null);
+  // Seeded from the server render instead of fetched on mount. The badge used
+  // to require a client round-trip after hydration before it could show a
+  // count — on every page load, and twice in dev under StrictMode. The layout
+  // already renders on the server, so it can hand the first payload down and
+  // the badge is correct on first paint. Opening the popover still refetches,
+  // so the numbers stay live.
+  const [data, setData] = React.useState<NotificationsData>(initialData);
   const [open, setOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    fetchNotifications().then(setData);
-  }, []);
 
   const count = data
     ? data.overdueTasks.length + data.blockedTasks.length + data.followUpsDue.length + data.upcomingMeetings.length + data.risksDue.length
@@ -40,7 +42,7 @@ export function NotificationBell() {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
         <div className="max-h-96 overflow-y-auto p-2">
-          {!data || count === 0 ? (
+          {count === 0 ? (
             <p className="px-3 py-6 text-center text-xs" style={{ color: "var(--muted-2)" }}>You&apos;re all caught up.</p>
           ) : (
             <>
