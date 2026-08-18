@@ -66,13 +66,11 @@ export async function getDashboardData() {
       // that ran two counts per project — the totals already come back on
       // each project as `_count.tasks`, so only the done side is missing.
       db.task.groupBy({ by: ["projectId"], where: { status: "DONE" }, _count: { _all: true } }),
+      // Mirrors /my-day: the PM's own work only. This previously also pulled
+      // in any task assigned to them that was due today, which meant project
+      // delivery work leaked into the day view. See lib/queries/my-day.ts.
       db.task.findMany({
-        where: {
-          OR: [
-            { assigneeId: userId, dueDate: { gte: today, lte: todayEnd } },
-            { assigneeId: userId, isPersonal: true, status: { notIn: ["DONE"] } },
-          ],
-        },
+        where: { assigneeId: userId, isPersonal: true, status: { notIn: ["DONE"] } },
         orderBy: [{ priority: "asc" }],
         take: 8,
         include: { project: true },

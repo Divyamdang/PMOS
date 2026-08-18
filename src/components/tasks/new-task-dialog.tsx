@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createTask } from "@/app/actions/tasks";
-import { PRIORITY_META, TASK_TYPE_META } from "@/lib/domain";
+import { Switch } from "@/components/ui/switch";
+import { PRIORITY_META, TASK_TYPE_META, isOwnWorkType } from "@/lib/domain";
 import { toast } from "sonner";
 import type { Priority, TaskType } from "@/generated/prisma";
 
@@ -17,12 +18,14 @@ export function NewTaskDialog({
   onOpenChange,
   defaultProjectId,
   projects,
-  isPersonal = false,
+  isPersonal,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultProjectId?: string;
   projects?: { id: string; key: string; name: string }[];
+  /** Force the own-work flag instead of deriving it from the task type.
+   * Left undefined normally, so the type drives the default. */
   isPersonal?: boolean;
 }) {
   const [title, setTitle] = React.useState("");
@@ -32,6 +35,10 @@ export function NewTaskDialog({
   const [projectId, setProjectId] = React.useState<string>(defaultProjectId ?? "none");
   const [dueDate, setDueDate] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
+  /** null = follow the task type; true/false = the user has decided. Derived at
+   * render rather than synced in an effect, same as NewProjectDialog's key. */
+  const [ownWorkOverride, setOwnWorkOverride] = React.useState<boolean | null>(isPersonal ?? null);
+  const ownWork = ownWorkOverride ?? isOwnWorkType(type);
 
   async function submit() {
     if (!title.trim()) return;
@@ -44,13 +51,14 @@ export function NewTaskDialog({
         priority,
         projectId: projectId === "none" ? null : projectId,
         dueDate: dueDate ? new Date(dueDate) : null,
-        isPersonal,
+        isPersonal: ownWork,
       });
       toast.success("Task created.", { description: task.taskKey });
       onOpenChange(false);
       setTitle("");
       setDescription("");
       setDueDate("");
+      setOwnWorkOverride(isPersonal ?? null);
     } finally {
       setSubmitting(false);
     }
@@ -115,6 +123,20 @@ export function NewTaskDialog({
               <Label>Due date</Label>
               <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             </div>
+          </div>
+          <div
+            className="flex items-start justify-between gap-4 rounded-lg border px-3 py-2.5"
+            style={{ borderColor: "var(--border-subtle)" }}
+          >
+            <div className="flex flex-col gap-0.5">
+              <Label htmlFor="own-work" className="cursor-pointer">My own work</Label>
+              <p className="text-xs" style={{ color: "var(--muted-2)" }}>
+                {ownWork
+                  ? "Shows up in My Day."
+                  : "Tracked on the project board, kept out of My Day."}
+              </p>
+            </div>
+            <Switch id="own-work" checked={ownWork} onCheckedChange={setOwnWorkOverride} />
           </div>
         </div>
         <DialogFooter>

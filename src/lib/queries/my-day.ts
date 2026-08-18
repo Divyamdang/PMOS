@@ -17,18 +17,25 @@ export async function getMyDayData() {
   const today = startOfToday();
   const todayEnd = endOfToday();
 
+  // My Day is the PM's own day: work they personally own, whether or not it
+  // references a project. Project delivery tasks (features, bugs, tech debt)
+  // stay on the project board and out of here — there are far more of them
+  // than there are hours, and they'd bury the handful of things that actually
+  // need the PM today.
+  //
+  // `isPersonal` carries that distinction (defaulted from task type, see
+  // lib/tasks/create-data.ts, overridable per task). The assignee filter is
+  // just as important: without it this listed every teammate's work too.
+  const ownWork = { assigneeId: user.id, isPersonal: true };
+
   const [planned, unplannedCandidates, followUpsToday, meetingsToday] = await Promise.all([
     db.task.findMany({
-      where: { planDate: { gte: today, lte: todayEnd }, planBucket: { not: null } },
+      where: { ...ownWork, planDate: { gte: today, lte: todayEnd }, planBucket: { not: null } },
       include: { project: true },
       orderBy: { planOrder: "asc" },
     }),
     db.task.findMany({
-      where: {
-        planBucket: null,
-        status: { not: "DONE" },
-        OR: [{ dueDate: { lte: todayEnd } }, { assigneeId: user.id, isPersonal: true }],
-      },
+      where: { ...ownWork, planBucket: null, status: { not: "DONE" } },
       include: { project: true },
       orderBy: [{ priority: "asc" }],
       take: 15,

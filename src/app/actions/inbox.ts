@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
 import { nextTaskKey } from "@/lib/keys";
 import { logActivity } from "@/lib/activity";
+import { isOwnWorkType } from "@/lib/domain";
 import { revalidatePath } from "next/cache";
 import type { InboxConversion, TaskType } from "@/generated/prisma";
 
@@ -70,7 +71,10 @@ export async function convertInboxItemWithDraft(
       type: draft.type,
       priority: draft.priority,
       projectId: draft.projectId,
-      isPersonal: !draft.projectId,
+      // Derived from the task type, not from whether a project is attached —
+      // a follow-up or meeting about a project is still the PM's own work and
+      // belongs in My Day. Tying this to projectId used to hide exactly those.
+      isPersonal: isOwnWorkType(draft.type),
       assigneeId: user.id,
       reporterId: user.id,
     },

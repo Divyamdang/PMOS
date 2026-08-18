@@ -1,4 +1,5 @@
 import type { Priority, TaskStatus, TaskType } from "@/generated/prisma";
+import { isOwnWorkType } from "@/lib/domain";
 
 export type TaskCreateInput = {
   title: string;
@@ -30,11 +31,12 @@ export function buildTaskCreateData(
   meta: { taskKey: string; reporterId: string },
 ) {
   const status = input.status ?? "TODO";
+  const type = input.type ?? "TASK";
   return {
     taskKey: meta.taskKey,
     title: input.title,
     description: input.description ?? null,
-    type: input.type ?? "TASK",
+    type,
     status,
     priority: input.priority ?? "P2",
     projectId: input.projectId ?? null,
@@ -43,7 +45,12 @@ export function buildTaskCreateData(
     reporterId: meta.reporterId,
     dueDate: input.dueDate ?? null,
     parentTaskId: input.parentTaskId ?? null,
-    isPersonal: input.isPersonal ?? false,
+    // Defaults from the task type — a Meeting or Follow-up is the PM's own
+    // work, a Feature or Bug is project delivery — and only when the caller
+    // hasn't said otherwise, so an explicit toggle always wins. Deliberately
+    // independent of projectId: a follow-up about a project is still the PM's
+    // own work and belongs in My Day.
+    isPersonal: input.isPersonal ?? isOwnWorkType(type),
     // Kept consistent with updateTaskStatus(), which stamps this whenever a
     // task lands in DONE — otherwise a task imported as already-done would
     // never register a completion date and would skew cycle-time analytics.

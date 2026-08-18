@@ -71,6 +71,35 @@ export const TASK_TYPE_META = {
   IDEA: { label: "Idea" },
 } as const;
 
+/** Task types that are the PM's own coordination work rather than development
+ * work on a project. These are what My Day is for — chasing people, sitting in
+ * meetings, keeping vendors moving — and they're the PM's day whether or not
+ * the task happens to reference a project.
+ *
+ * Everything not listed here (Feature, Bug, Tech debt, Research, …) is project
+ * delivery work: still tracked on the project board, deliberately kept out of
+ * My Day so it doesn't drown the handful of things the PM personally owns.
+ *
+ * This only decides the *default*. Every task carries an `isPersonal` flag the
+ * user can flip either way, so a Feature you've personally taken on can still
+ * be pulled into your day. */
+export const OWN_WORK_TASK_TYPES = [
+  "FOLLOW_UP",
+  "MEETING",
+  "CALL",
+  "COMMUNICATION",
+  "REMINDER",
+  "VENDOR",
+  "DECISION",
+] as const;
+
+const OWN_WORK_SET = new Set<string>(OWN_WORK_TASK_TYPES);
+
+/** Whether a task of this type is the PM's own work by default. */
+export function isOwnWorkType(type: string | null | undefined): boolean {
+  return type ? OWN_WORK_SET.has(type) : false;
+}
+
 export const PERSON_CATEGORY_META = {
   ENGINEERING: { label: "Engineering" },
   DESIGN: { label: "Design" },
