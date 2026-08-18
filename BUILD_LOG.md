@@ -611,7 +611,8 @@ force every user to re-consent to Gmail/Calendar.
 |---|---|---|
 | From the dev machine (India) | 154 ms | **27 ms** |
 
-**Pooler choice is worth knowing about.** Measured on the Mumbai project:
+**Pooler choice — and an outage caused by getting it wrong.** Measured on the
+Mumbai project, single connection, no concurrency:
 
 | Connection | `SELECT 1` |
 |---|---|
@@ -619,12 +620,41 @@ force every user to re-consent to Gmail/Calendar.
 | Session pooler, port 5432 | **27 ms** |
 
 That ~96 ms gap is Prisma disabling prepared statements under pgbouncer, so
-every query re-parses. We stayed on the transaction pooler for `DATABASE_URL`
-because that's Supabase's documented recommendation for serverless — session
-mode holds a server connection per client and can exhaust the connection
-limit under concurrent lambdas. For a team this size the session pooler would
-likely be safe and ~4.5x faster, but that trade (latency vs. a hard failure
-mode under load) is a deliberate choice, not a default worth making silently.
+every query re-parses. On that number alone the session pooler looks like a
+free 4.5x, and it was briefly shipped to production with
+`connection_limit=10`. **That took the live site down** with:
+
+```
+FATAL: (EMAXCONNSESSION) max clients reached in session mode
+       — max clients are limited to pool_size: 15
+```
+
+Session mode holds one Postgres connection per client for the life of the
+session. Supabase caps that pool at **15 connections total**, so at
+`connection_limit=10` just **two** concurrent serverless instances exhaust the
+entire database. Reproduced deterministically: 6 simulated instances → 6/6
+failed.
+
+The single-connection benchmark was measuring the wrong thing entirely — it
+had no concurrency in it, and concurrency is the only axis on which these two
+poolers actually differ. Under concurrent load, measured the same way:
+
+| Config | 8 instances | 16 | 25 |
+|---|---|---|---|
+| Session pooler, `connection_limit=10` | **fails** (6/6 at N=6) | — | — |
+| Transaction pooler, `connection_limit=5` | 8/8 ok | 16/16 ok | 25/25 ok |
+
+`DATABASE_URL` is therefore the **transaction pooler on 6543 with
+`pgbouncer=true&connection_limit=5`** — the configuration Supabase documents
+for serverless, and the one that survives 275 simultaneous queries. Transaction
+mode returns the connection after each transaction, so a small server pool
+serves many clients; that is the entire point of it.
+
+`DIRECT_URL` stays on the session pooler (5432) because migrations need a
+non-pooled connection, but that runs once, by hand, at a concurrency of one.
+
+The lesson worth keeping: a latency number taken at concurrency 1 says nothing
+about a connection pool. Benchmark the failure mode, not just the happy path.
 
 ### B3. Collapsed the dashboard's four query waves into one
 
